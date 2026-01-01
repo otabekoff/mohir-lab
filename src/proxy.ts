@@ -1,5 +1,5 @@
 // ============================================
-// Middleware for Protected Routes (NextAuth v4)
+// Proxy for Protected Routes (NextAuth v4)
 // ============================================
 
 import { getToken } from "next-auth/jwt";
@@ -18,7 +18,7 @@ const roleBasedRoutes: Record<string, string[]> = {
     "/dashboard/permissions": ["owner"],
 };
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
     // Get the token using next-auth/jwt

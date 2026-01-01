@@ -1,5 +1,5 @@
 // ============================================
-// Blog Page (Placeholder)
+// Blog Page - MDX Powered
 // ============================================
 
 import Link from "next/link";
@@ -8,44 +8,25 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Clock, User } from "lucide-react";
 
+// Import metadata from all blog posts
+import { metadata as post1 } from "@/content/blog/getting-started-nextjs-16.mdx";
+import { metadata as post2 } from "@/content/blog/future-ai-education.mdx";
+import { metadata as post3 } from "@/content/blog/tips-learning-code.mdx";
+
+// Combine all posts with their slugs
 const posts = [
-  {
-    id: "1",
-    title: "Getting Started with Next.js 16: What's New",
-    excerpt:
-      "Explore the latest features in Next.js 16 including improved performance, new APIs, and enhanced developer experience.",
-    image: "https://picsum.photos/seed/blog1/800/450",
-    author: "Otabek Ismoilov",
-    date: "Dec 28, 2025",
-    readTime: "5 min read",
-    category: "Web Development",
-    slug: "getting-started-nextjs-16",
-  },
-  {
-    id: "2",
-    title: "The Future of AI in Education",
-    excerpt:
-      "How artificial intelligence is transforming online learning and what it means for students and educators.",
-    image: "https://picsum.photos/seed/blog2/800/450",
-    author: "Aziza Karimova",
-    date: "Dec 25, 2025",
-    readTime: "7 min read",
-    category: "AI & ML",
-    slug: "future-ai-education",
-  },
-  {
-    id: "3",
-    title: "5 Tips for Learning to Code Effectively",
-    excerpt:
-      "Practical advice for beginners on how to make the most of your coding journey and avoid common pitfalls.",
-    image: "https://picsum.photos/seed/blog3/800/450",
-    author: "Sardor Rahimov",
-    date: "Dec 20, 2025",
-    readTime: "4 min read",
-    category: "Career",
-    slug: "tips-learning-code",
-  },
-];
+  { ...post1, slug: "getting-started-nextjs-16" },
+  { ...post2, slug: "future-ai-education" },
+  { ...post3, slug: "tips-learning-code" },
+].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+function formatDate(dateString: string) {
+  return new Date(dateString).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
 
 export default function BlogPage() {
   return (
@@ -63,8 +44,8 @@ export default function BlogPage() {
 
       <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
         {posts.map((post) => (
-          <Link key={post.id} href={`/blog/${post.slug}`}>
-            <Card className="h-full overflow-hidden transition-all hover:shadow-lg p-0">
+          <Link key={post.slug} href={`/blog/${post.slug}`}>
+            <Card className="h-full overflow-hidden p-0 transition-all hover:shadow-lg">
               <CardHeader className="p-0">
                 <div className="relative aspect-video">
                   <Image
@@ -79,7 +60,7 @@ export default function BlogPage() {
                   </Badge>
                 </div>
               </CardHeader>
-              <CardContent className="p-6">
+              <CardContent className="flex-1 p-6">
                 <CardTitle className="line-clamp-2 hover:text-primary">
                   {post.title}
                 </CardTitle>
@@ -89,11 +70,11 @@ export default function BlogPage() {
                 <div className="mt-4 flex items-center gap-4 text-xs text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <User className="h-3 w-3" />
-                    <span>{post.author}</span>
+                    <span>{post.author.name}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
-                    <span>{post.date}</span>
+                    <span>{formatDate(post.date)}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Clock className="h-3 w-3" />
@@ -104,12 +85,6 @@ export default function BlogPage() {
             </Card>
           </Link>
         ))}
-      </div>
-
-      <div className="mt-12 text-center">
-        <p className="text-muted-foreground">
-          More articles coming soon. Subscribe to our newsletter for updates!
-        </p>
       </div>
     </div>
   );
