@@ -1,14 +1,15 @@
 {
   "compilerOptions": {
-    "target": "ES2017",
+    "target": "ES2023", // was 2017
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
     "esModuleInterop": true,
+    // "ignoreDeprecations": "6.0" // should be enabled
     "module": "esnext",
-    "moduleResolution": "bundler",
+    "moduleResolution": "bundler", // needs to be node?
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "react-jsx",

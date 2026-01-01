@@ -1,0 +1,93 @@
+export const metadata = {
+  title: "Getting Started with Next.js 16: What's New",
+  excerpt:
+    "Explore the latest features in Next.js 16 including improved performance, new APIs, and enhanced developer experience.",
+  image: "https://picsum.photos/seed/blog1/1200/600",
+  author: {
+    name: "Otabek Ismoilov",
+    avatar: "https://i.pravatar.cc/150?u=otabek",
+    role: "Founder & CEO",
+  },
+  date: "2025-12-28",
+  readTime: "5 min read",
+  category: "Web Development",
+  tags: ["Next.js", "React", "Web Development"],
+};
+
+# Getting Started with Next.js 16: What's New
+
+Next.js 16 brings a host of exciting new features and improvements that make building modern web applications even easier. In this article, we'll explore what's new and how you can take advantage of these features in your projects.
+
+## Key Features
+
+### React Compiler
+
+One of the most significant additions is the **React Compiler**, which automatically optimizes your React components for better performance. No more manual memoization with `useMemo`, `useCallback`, or `React.memo`!
+
+The React Compiler analyzes your code at build time and automatically adds the necessary optimizations. This means:
+
+- Faster rendering performance out of the box
+- Cleaner, more maintainable code
+- No need to think about memoization strategies
+
+To enable it, simply add `reactCompiler: true` to your `next.config.ts`:
+
+```typescript
+const nextConfig: NextConfig = {
+  reactCompiler: true,
+};
+```
+
+### Improved Turbopack
+
+Turbopack is now the default bundler in Next.js 16, offering significantly faster development builds and hot module replacement. Some highlights:
+
+- **10x faster** cold starts compared to webpack
+- **700x faster** HMR updates
+- Incremental builds that only process changed files
+
+### Enhanced Server Actions
+
+Server Actions have been refined with better error handling and improved TypeScript support:
+
+```typescript
+"use server";
+
+export async function createPost(formData: FormData) {
+  const title = formData.get("title") as string;
+  const content = formData.get("content") as string;
+
+  // Validation and database operations
+  await db.post.create({ data: { title, content } });
+
+  revalidatePath("/posts");
+}
+```
+
+## Getting Started
+
+To create a new Next.js 16 project, simply run:
+
+```bash
+npx create-next-app@latest my-app
+```
+
+Or if you prefer Bun:
+
+```bash
+bunx create-next-app@latest my-app
+```
+
+## Migration Guide
+
+If you're upgrading from Next.js 15, here are the key changes:
+
+1. **Update dependencies** - Run `npm install next@16 react@19 react-dom@19`
+2. **Enable React Compiler** - Add `reactCompiler: true` to your config
+3. **Review deprecated APIs** - Check for any deprecated patterns in your code
+
+## Conclusion
+
+Next.js 16 represents a significant step forward for the framework. Whether you're building a simple blog or a complex enterprise application, these new features will help you build faster and more efficiently.
+
+Ready to get started? Check out our [Complete Web Development Bootcamp](/courses/complete-web-development-bootcamp-2026) to learn Next.js 16 from scratch!
