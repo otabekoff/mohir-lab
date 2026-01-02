@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -29,6 +30,7 @@ import {
   Check,
   Loader2,
   Copy,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { Course } from "@/types";
@@ -316,18 +318,35 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
         <DialogContent className="max-w-4xl p-0">
           <DialogHeader className="p-4 pb-0">
             <DialogTitle>Course Preview</DialogTitle>
+            <DialogDescription>
+              Watch a preview of what you&apos;ll learn in this course
+            </DialogDescription>
           </DialogHeader>
           <div className="aspect-video w-full bg-black">
-            {/* Video player - for now show placeholder */}
-            <div className="flex h-full items-center justify-center text-white">
-              <div className="text-center">
-                <Play className="mx-auto mb-4 h-16 w-16 opacity-50" />
-                <p className="text-lg">Preview video coming soon</p>
-                <p className="mt-2 text-sm text-gray-400">
-                  Check out the free lessons in the curriculum below
-                </p>
+            {course.previewVideo ? (
+              <video
+                src={course.previewVideo}
+                controls
+                autoPlay
+                className="h-full w-full"
+                onError={(e) => {
+                  console.error("Preview video error:", e);
+                }}
+              >
+                Your browser does not support video playback.
+              </video>
+            ) : (
+              <div className="flex h-full items-center justify-center text-white">
+                <div className="text-center">
+                  <AlertCircle className="mx-auto mb-4 h-16 w-16 opacity-50" />
+                  <p className="text-lg">No preview video available</p>
+                  <p className="mt-2 text-sm text-gray-400">
+                    Check out the free lessons marked as &quot;Preview&quot; in
+                    the curriculum below
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
@@ -337,11 +356,11 @@ export function CourseSidebar({ course }: CourseSidebarProps) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Share this course</DialogTitle>
+            <DialogDescription>
+              Share this course with friends and colleagues
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Share this course with friends and colleagues
-            </p>
             <div className="flex gap-2">
               <input
                 type="text"

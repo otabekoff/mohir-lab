@@ -4,19 +4,22 @@
 // Learning Player Component
 // ============================================
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Play,
-  Pause,
   Download,
   BookOpen,
   FileText,
   AlertCircle,
   RotateCcw,
+  CheckCircle,
+  Loader2,
 } from "lucide-react";
+import { markLessonComplete } from "@/actions/enrollments";
+import { toast } from "sonner";
 
 interface Lesson {
   id: string;
@@ -29,16 +32,20 @@ interface Lesson {
 
 interface LearningPlayerProps {
   lesson: Lesson | null;
+  isCompleted?: boolean;
+  onComplete?: () => void;
 }
 
 // Fallback sample video when videoUrl doesn't work
 const FALLBACK_VIDEO =
   "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
 
-export function LearningPlayer({ lesson }: LearningPlayerProps) {
+export function LearningPlayer({ lesson, isCompleted = false, onComplete }: LearningPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [useFallback, setUseFallback] = useState(false);
+  const [lessonCompleted, setLessonCompleted] = useState(isCompleted);
+  const [isPending, startTransition] = useTransition();
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // Reset states when lesson changes
@@ -46,7 +53,8 @@ export function LearningPlayer({ lesson }: LearningPlayerProps) {
     setIsPlaying(false);
     setHasError(false);
     setUseFallback(false);
-  }, [lesson?.id]);
+    setLessonCompleted(isCompleted);
+  }, [lesson?.id, isCompleted]);
 
   if (!lesson) {
     return (
@@ -94,6 +102,36 @@ export function LearningPlayer({ lesson }: LearningPlayerProps) {
     setIsPlaying(false);
   };
 
+  const handleVideoEnded = () => {
+    if (!lessonCompleted) {
+      handleMarkComplete();
+    }
+  };
+
+  const handleMarkComplete = () => {
+    startTransition(async () => {
+      try {
+        const result = await markLessonComplete(lesson.id);
+        setLessonCompleted(true);
+        
+        if (result.isCompleted) {
+          toast.success("🎉 Congratulations!", {
+            description: "You've completed this course! Your certificate is ready.",
+          });
+        } else {
+          toast.success("Lesson completed!", {
+            description: `Progress: ${Math.round(result.progress)}%`,
+          });
+        }
+        
+        onComplete?.();
+      } catch (error) {
+        toast.error("Failed to mark lesson as complete");
+        console.error(error);
+      }
+    });
+  };
+
   return (
     <div className="flex flex-col">
       {/* Video Player */}
@@ -119,6 +157,7 @@ export function LearningPlayer({ lesson }: LearningPlayerProps) {
             autoPlay
             className="h-full w-full object-contain"
             onError={handleVideoError}
+            onEnded={handleVideoEnded}
           >
             Your browser does not support the video tag.
           </video>
@@ -152,7 +191,30 @@ export function LearningPlayer({ lesson }: LearningPlayerProps) {
 
       {/* Lesson Info & Resources */}
       <div className="flex-1 p-6">
-        <h2 className="text-2xl font-bold">{lesson.title}</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">{lesson.title}</h2>
+          {lessonCompleted ? (
+            <div className="flex items-center gap-2 text-green-600">
+              <CheckCircle className="h-5 w-5" />
+              <span className="text-sm font-medium">Completed</span>
+            </div>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleMarkComplete}
+              disabled={isPending}
+              className="gap-2"
+            >
+              {isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <CheckCircle className="h-4 w-4" />
+              )}
+              Mark as Complete
+            </Button>
+          )}
+        </div>
 
         <Tabs defaultValue="overview" className="mt-6">
           <TabsList>

@@ -13,18 +13,34 @@ import {
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { PlayCircle, Lock } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { PlayCircle, Lock, Play } from "lucide-react";
 import type { CourseSection } from "@/types";
 
 interface CourseCurriculumProps {
   sections: CourseSection[];
+  courseSlug?: string;
 }
 
-export function CourseCurriculum({ sections }: CourseCurriculumProps) {
+export function CourseCurriculum({
+  sections,
+  courseSlug,
+}: CourseCurriculumProps) {
   const [expandAll, setExpandAll] = useState(false);
   const [openSections, setOpenSections] = useState<string[]>([
     sections[0]?.id || "",
   ]);
+  const [previewLesson, setPreviewLesson] = useState<{
+    open: boolean;
+    title: string;
+    videoUrl: string;
+  }>({ open: false, title: "", videoUrl: "" });
 
   const totalLessons = sections.reduce((acc, s) => acc + s.lessons.length, 0);
   const totalDuration = sections.reduce(
@@ -96,7 +112,20 @@ export function CourseCurriculum({ sections }: CourseCurriculumProps) {
                 {section.lessons.map((lesson) => (
                   <li
                     key={lesson.id}
-                    className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/30"
+                    className={`flex items-center gap-3 px-4 py-3 transition-colors ${
+                      lesson.isFree
+                        ? "cursor-pointer hover:bg-primary/5"
+                        : "hover:bg-muted/30"
+                    }`}
+                    onClick={() => {
+                      if (lesson.isFree && lesson.videoUrl) {
+                        setPreviewLesson({
+                          open: true,
+                          title: lesson.title,
+                          videoUrl: lesson.videoUrl,
+                        });
+                      }
+                    }}
                   >
                     {lesson.isFree ? (
                       <PlayCircle className="h-4 w-4 shrink-0 text-primary" />
@@ -121,6 +150,40 @@ export function CourseCurriculum({ sections }: CourseCurriculumProps) {
           </AccordionItem>
         ))}
       </Accordion>
+
+      {/* Free Lesson Preview Dialog */}
+      <Dialog
+        open={previewLesson.open}
+        onOpenChange={(open) => setPreviewLesson({ ...previewLesson, open })}
+      >
+        <DialogContent className="max-w-4xl p-0">
+          <DialogHeader className="p-4 pb-0">
+            <DialogTitle>{previewLesson.title}</DialogTitle>
+            <DialogDescription>
+              Free preview lesson - Enroll to access all course content
+            </DialogDescription>
+          </DialogHeader>
+          <div className="aspect-video w-full bg-black">
+            {previewLesson.videoUrl ? (
+              <video
+                src={previewLesson.videoUrl}
+                controls
+                autoPlay
+                className="h-full w-full"
+              >
+                Your browser does not support video playback.
+              </video>
+            ) : (
+              <div className="flex h-full items-center justify-center text-white">
+                <div className="text-center">
+                  <Play className="mx-auto mb-4 h-16 w-16 opacity-50" />
+                  <p className="text-lg">Video not available</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

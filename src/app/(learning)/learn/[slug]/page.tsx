@@ -6,7 +6,7 @@ import { notFound, redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth.config";
 import { getCourseForLearning } from "@/actions/courses";
-import { isEnrolledBySlug, getEnrollmentBySlug } from "@/actions/enrollments";
+import { isEnrolledBySlug, getEnrollmentBySlug, getLessonProgress, getCourseLessonProgress } from "@/actions/enrollments";
 import { LearningPlayer } from "./_components/learning-player";
 import { LearningSidebar } from "./_components/learning-sidebar";
 import { LearningHeader } from "./_components/learning-header";
@@ -55,7 +55,10 @@ export default async function LearnPage({
   };
 
   // Get enrollment data for progress
-  const enrollment = await getEnrollmentBySlug(slug);
+  const [enrollment, allLessonProgress] = await Promise.all([
+    getEnrollmentBySlug(slug),
+    getCourseLessonProgress(course.id),
+  ]);
 
   // Find current lesson
   let currentLesson = null;
@@ -80,6 +83,13 @@ export default async function LearnPage({
     }
   }
 
+  // Get lesson progress
+  let isLessonCompleted = false;
+  if (currentLesson) {
+    const lessonProgress = await getLessonProgress(currentLesson.id);
+    isLessonCompleted = lessonProgress?.isCompleted ?? false;
+  }
+
   return (
     <div className="flex h-screen flex-col">
       <LearningHeader
@@ -90,7 +100,10 @@ export default async function LearnPage({
       <div className="flex flex-1 overflow-hidden">
         {/* Video Player Area */}
         <div className="flex-1 overflow-auto">
-          <LearningPlayer lesson={currentLesson} />
+          <LearningPlayer 
+            lesson={currentLesson} 
+            isCompleted={isLessonCompleted}
+          />
         </div>
 
         {/* Sidebar with lessons */}
@@ -98,6 +111,7 @@ export default async function LearnPage({
           course={courseData}
           currentLessonId={currentLesson?.id}
           enrollment={enrollment}
+          lessonProgress={allLessonProgress}
         />
       </div>
     </div>

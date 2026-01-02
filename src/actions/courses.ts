@@ -24,6 +24,7 @@ export type CourseWithDetails = Prisma.CourseGetPayload<{
                         duration: true;
                         isFree: true;
                         order: true;
+                        videoUrl: true;
                     };
                 };
             };
@@ -112,7 +113,7 @@ export async function getFeaturedCourses(
     return courses;
 }
 
-// Get a single course by slug
+// Get a single course by slug (includes videoUrl for free lessons only)
 export async function getCourseBySlug(
     slug: string,
 ): Promise<CourseWithDetails | null> {
@@ -134,6 +135,7 @@ export async function getCourseBySlug(
                             duration: true,
                             isFree: true,
                             order: true,
+                            videoUrl: true, // Include video URL - we'll filter in code
                         },
                     },
                 },
@@ -155,7 +157,22 @@ export async function getCourseBySlug(
         },
     });
 
-    return course;
+    if (!course) return null;
+
+    // Only expose videoUrl for free lessons
+    const sanitizedCourse = {
+        ...course,
+        sections: course.sections.map((section) => ({
+            ...section,
+            lessons: section.lessons.map((lesson) => ({
+                ...lesson,
+                // Only include videoUrl if lesson is free
+                videoUrl: lesson.isFree ? lesson.videoUrl : undefined,
+            })),
+        })),
+    };
+
+    return sanitizedCourse as CourseWithDetails;
 }
 
 // Get course for learning (with video URLs for enrolled users)

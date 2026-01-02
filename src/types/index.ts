@@ -30,6 +30,7 @@ export interface Course {
     description: string;
     shortDescription: string;
     thumbnail: string;
+    previewVideo?: string;
     price: number;
     discountPrice?: number;
     level: CourseLevel;

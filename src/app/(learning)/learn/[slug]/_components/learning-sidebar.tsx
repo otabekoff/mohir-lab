@@ -37,6 +37,11 @@ interface Lesson {
   isFree: boolean;
 }
 
+interface LessonProgress {
+  lessonId: string;
+  isCompleted: boolean;
+}
+
 interface Enrollment {
   id: string;
   progress: number;
@@ -52,12 +57,14 @@ interface LearningSidebarProps {
   course: Course;
   currentLessonId?: string;
   enrollment: Enrollment | null;
+  lessonProgress?: LessonProgress[];
 }
 
 export function LearningSidebar({
   course,
   currentLessonId,
   enrollment,
+  lessonProgress = [],
 }: LearningSidebarProps) {
   const [openSections, setOpenSections] = useState<string[]>(
     course.sections.map((s) => s.id),
@@ -77,14 +84,19 @@ export function LearningSidebar({
     return `${minutes}:${secs.toString().padStart(2, "0")}`;
   };
 
+  // Check if lesson is completed
+  const isLessonCompleted = (lessonId: string) => {
+    return lessonProgress.some(
+      (lp) => lp.lessonId === lessonId && lp.isCompleted
+    );
+  };
+
   // Calculate total lessons and completed
   const totalLessons = course.sections.reduce(
     (acc, section) => acc + section.lessons.length,
     0,
   );
-  const completedLessons = Math.floor(
-    (totalLessons * (enrollment?.progress || 0)) / 100,
-  );
+  const completedLessons = lessonProgress.filter((lp) => lp.isCompleted).length;
 
   return (
     <aside className="hidden w-80 shrink-0 border-l bg-muted/30 lg:block">
@@ -130,8 +142,7 @@ export function LearningSidebar({
                 <div className="ml-4 space-y-1 border-l pl-2">
                   {section.lessons.map((lesson) => {
                     const isActive = lesson.id === currentLessonId;
-                    // For demo, mark first few lessons as completed based on progress
-                    const isCompleted = false; // This would come from actual progress tracking
+                    const isCompleted = isLessonCompleted(lesson.id);
 
                     return (
                       <Link

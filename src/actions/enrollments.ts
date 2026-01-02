@@ -114,40 +114,49 @@ export async function enrollInCourse(courseId: string) {
         throw new Error("You must be logged in to enroll");
     }
 
-    // Check if already enrolled
-    const existing = await prisma.enrollment.findUnique({
-        where: {
-            userId_courseId: {
+    try {
+        // Check if already enrolled
+        const existing = await prisma.enrollment.findUnique({
+            where: {
+                userId_courseId: {
+                    userId: session.user.id,
+                    courseId,
+                },
+            },
+        });
+
+        if (existing) {
+            throw new Error("You are already enrolled in this course");
+        }
+
+        const enrollment = await prisma.enrollment.create({
+            data: {
                 userId: session.user.id,
                 courseId,
             },
-        },
-    });
+            include: {
+                course: true,
+            },
+        });
 
-    if (existing) {
-        throw new Error("You are already enrolled in this course");
+        // Update course student count
+        await prisma.course.update({
+            where: { id: courseId },
+            data: { studentsCount: { increment: 1 } },
+        });
+
+        revalidatePath("/dashboard");
+        revalidatePath(`/courses/[slug]`, "page");
+        revalidatePath("/dashboard/my-courses");
+
+        return enrollment;
+    } catch (error) {
+        console.error("Enrollment error:", error);
+        if (error instanceof Error) {
+            throw error;
+        }
+        throw new Error("Failed to enroll. Please try again.");
     }
-
-    const enrollment = await prisma.enrollment.create({
-        data: {
-            userId: session.user.id,
-            courseId,
-        },
-        include: {
-            course: true,
-        },
-    });
-
-    // Update course student count
-    await prisma.course.update({
-        where: { id: courseId },
-        data: { studentsCount: { increment: 1 } },
-    });
-
-    revalidatePath("/dashboard");
-    revalidatePath(`/courses/[slug]`, "page");
-
-    return enrollment;
 }
 
 // Update enrollment progress
@@ -161,6 +170,8 @@ export async function updateEnrollmentProgress(
         throw new Error("You must be logged in");
     }
 
+    const isCompleted = progress >= 100;
+
     const enrollment = await prisma.enrollment.update({
         where: {
             userId_courseId: {
@@ -169,11 +180,46 @@ export async function updateEnrollmentProgress(
             },
         },
         data: {
-            progress,
+            progress: Math.min(progress, 100),
             lastAccessAt: new Date(),
-            completedAt: progress >= 100 ? new Date() : null,
+            completedAt: isCompleted ? new Date() : null,
         },
     });
+
+    // Auto-generate certificate when course is completed
+    if (isCompleted) {
+        try {
+            // Check if certificate already exists
+            const existingCert = await prisma.certificate.findUnique({
+                where: {
+                    userId_courseId: {
+                        userId: session.user.id,
+                        courseId,
+                    },
+                },
+            });
+
+            if (!existingCert) {
+                // Generate certificate ID
+                const certId = `MOHIR-${Date.now().toString(36).toUpperCase()}-${
+                    session.user.id.slice(-4).toUpperCase()
+                }`;
+
+                await prisma.certificate.create({
+                    data: {
+                        userId: session.user.id,
+                        courseId,
+                        certificateId: certId,
+                    },
+                });
+
+                revalidatePath("/dashboard/certificates");
+            }
+        } catch (error) {
+            console.error("Failed to generate certificate:", error);
+            // Don't throw - enrollment progress is more important
+        }
+    }
 
     return enrollment;
 }
@@ -312,6 +358,7 @@ export async function markLessonComplete(lessonId: string) {
     });
 
     const progress = allLessons > 0 ? (completedLessons / allLessons) * 100 : 0;
+    const isCompleted = progress >= 100;
 
     await prisma.enrollment.update({
         where: {
@@ -323,13 +370,87 @@ export async function markLessonComplete(lessonId: string) {
         data: {
             progress,
             lastAccessAt: new Date(),
-            completedAt: progress >= 100 ? new Date() : null,
+            completedAt: isCompleted ? new Date() : null,
         },
     });
 
+    // Auto-generate certificate when course is completed
+    if (isCompleted) {
+        try {
+            const existingCert = await prisma.certificate.findUnique({
+                where: {
+                    userId_courseId: {
+                        userId: session.user.id,
+                        courseId,
+                    },
+                },
+            });
+
+            if (!existingCert) {
+                const certId = `MOHIR-${Date.now().toString(36).toUpperCase()}-${
+                    session.user.id.slice(-4).toUpperCase()
+                }`;
+
+                await prisma.certificate.create({
+                    data: {
+                        userId: session.user.id,
+                        courseId,
+                        certificateId: certId,
+                    },
+                });
+
+                revalidatePath("/dashboard/certificates");
+            }
+        } catch (error) {
+            console.error("Failed to generate certificate:", error);
+        }
+    }
+
     revalidatePath(`/learn/${lesson.section.course.slug}`);
 
-    return { progress };
+    return { progress, isCompleted };
+}
+
+// Get lesson progress for a specific lesson
+export async function getLessonProgress(lessonId: string) {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+        return null;
+    }
+
+    const progress = await prisma.lessonProgress.findUnique({
+        where: {
+            userId_lessonId: {
+                userId: session.user.id,
+                lessonId,
+            },
+        },
+    });
+
+    return progress;
+}
+
+// Get all lesson progress for a course
+export async function getCourseLessonProgress(courseId: string) {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+        return [];
+    }
+
+    const progress = await prisma.lessonProgress.findMany({
+        where: {
+            userId: session.user.id,
+            lesson: {
+                section: {
+                    courseId,
+                },
+            },
+        },
+    });
+
+    return progress;
 }
 
 // Get continue learning courses with completed lessons count

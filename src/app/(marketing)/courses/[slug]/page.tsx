@@ -37,6 +37,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
     description: dbCourse.description,
     shortDescription: dbCourse.shortDescription,
     thumbnail: dbCourse.thumbnail || "/placeholder-course.jpg",
+    previewVideo: dbCourse.previewVideo || undefined,
     price: Number(dbCourse.price),
     discountPrice: dbCourse.discountPrice
       ? Number(dbCourse.discountPrice)
@@ -66,7 +67,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
       lessons: section.lessons.map((lesson) => ({
         id: lesson.id,
         title: lesson.title,
-        videoUrl: "",
+        videoUrl: lesson.videoUrl || "", // Include videoUrl for free lesson preview
         duration: lesson.duration,
         order: lesson.order,
         isFree: lesson.isFree,
