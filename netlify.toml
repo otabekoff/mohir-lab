@@ -8,3 +8,13 @@
 # Next.js requires the @netlify/plugin-nextjs
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+# Environment variables for production (set these in Netlify dashboard)
+# NEXTAUTH_URL = "https://mohir-lab.netlify.app"
+# NEXTAUTH_SECRET = "your-production-secret"
+# NEXT_PUBLIC_APP_URL = "https://mohir-lab.netlify.app"
+# DATABASE_URL = "your-database-url"
+# GOOGLE_CLIENT_ID = "your-google-client-id"
+# GOOGLE_CLIENT_SECRET = "your-google-client-secret"
+# GITHUB_CLIENT_ID = "your-github-client-id"
+# GITHUB_CLIENT_SECRET = "your-github-client-secret"

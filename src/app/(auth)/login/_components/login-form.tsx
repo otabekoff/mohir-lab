@@ -20,7 +20,12 @@ import Link from "next/link";
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+
+  // Sanitize callback URL - remove localhost references in production
+  const rawCallbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+  const callbackUrl = rawCallbackUrl.includes("localhost")
+    ? "/dashboard"
+    : rawCallbackUrl;
   const error = searchParams.get("error");
 
   const [isLoading, setIsLoading] = useState(false);

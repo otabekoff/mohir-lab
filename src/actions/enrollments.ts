@@ -79,6 +79,33 @@ export async function isEnrolledBySlug(slug: string): Promise<boolean> {
     return isEnrolled(course.id);
 }
 
+// Get enrollment by course slug
+export async function getEnrollmentBySlug(slug: string) {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+        return null;
+    }
+
+    const course = await prisma.course.findUnique({
+        where: { slug },
+        select: { id: true },
+    });
+
+    if (!course) return null;
+
+    const enrollment = await prisma.enrollment.findUnique({
+        where: {
+            userId_courseId: {
+                userId: session.user.id,
+                courseId: course.id,
+            },
+        },
+    });
+
+    return enrollment;
+}
+
 // Enroll in a course (after successful payment)
 export async function enrollInCourse(courseId: string) {
     const session = await getServerSession(authOptions);

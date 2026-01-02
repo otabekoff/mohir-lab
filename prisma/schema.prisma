@@ -39,6 +39,7 @@ model User {
     progress      LessonProgress[]
     certificates  Certificate[]
     notifications Notification[]
+    wishlist      Wishlist[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -144,6 +145,7 @@ model Course {
     reviews      Review[]
     orders       Order[]
     certificates Certificate[]
+    wishlist     Wishlist[]
 
     createdAt   DateTime  @default(now())
     updatedAt   DateTime  @updatedAt
@@ -367,4 +369,24 @@ model Notification {
 
     @@index([userId])
     @@index([read])
+}
+
+// ============================================
+// Wishlist
+// ============================================
+
+model Wishlist {
+    id String @id @default(cuid())
+
+    userId String
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    courseId String
+    course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+    createdAt DateTime @default(now())
+
+    @@unique([userId, courseId])
+    @@index([userId])
+    @@index([courseId])
 }

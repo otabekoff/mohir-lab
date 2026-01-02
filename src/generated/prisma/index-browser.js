@@ -292,6 +292,13 @@ exports.Prisma.NotificationScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.WishlistScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  courseId: 'courseId',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -356,7 +363,8 @@ exports.Prisma.ModelName = {
   Review: 'Review',
   Order: 'Order',
   Certificate: 'Certificate',
-  Notification: 'Notification'
+  Notification: 'Notification',
+  Wishlist: 'Wishlist'
 };
 
 /**

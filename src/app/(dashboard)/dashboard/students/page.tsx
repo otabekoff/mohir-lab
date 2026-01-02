@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
+import { SendNotificationDialog } from "@/components/send-notification-dialog";
 
 interface PageProps {
   searchParams: Promise<{
@@ -71,11 +72,14 @@ export default async function StudentsPage({ searchParams }: PageProps) {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Students</h1>
-        <p className="text-muted-foreground">
-          View and manage student accounts
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Students</h1>
+          <p className="text-muted-foreground">
+            View and manage student accounts
+          </p>
+        </div>
+        <SendNotificationDialog targetType="role" />
       </div>
 
       {/* Stats */}

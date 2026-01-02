@@ -41,9 +41,20 @@ export const authOptions: NextAuthOptions = {
     },
     pages: {
         signIn: "/login",
-        error: "/auth/error",
+        error: "/login",
     },
     callbacks: {
+        async redirect({ url, baseUrl }) {
+            // Handle localhost URLs in production
+            if (url.includes("localhost")) {
+                return baseUrl + "/dashboard";
+            }
+            // Allows relative callback URLs
+            if (url.startsWith("/")) return `${baseUrl}${url}`;
+            // Allows callback URLs on the same origin
+            if (new URL(url).origin === baseUrl) return url;
+            return baseUrl + "/dashboard";
+        },
         async jwt({ token, user }) {
             if (user) {
                 token.id = user.id!;
