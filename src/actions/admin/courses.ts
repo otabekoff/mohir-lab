@@ -245,64 +245,66 @@ export async function deleteCourse(courseId: string) {
 export async function duplicateCourse(courseId: string) {
   await checkAdminAccess();
 
-  const original = await prisma.course.findUnique({
-    where: { id: courseId },
-    include: {
-      sections: {
-        include: { lessons: true },
-      },
-    },
-  });
-
-  if (!original) throw new Error("Course not found");
-
-  const newSlug = `${original.slug}-copy-${Date.now()}`;
-
-  const newCourse = await prisma.course.create({
-    data: {
-      title: `${original.title} (Copy)`,
-      slug: newSlug,
-      shortDescription: original.shortDescription,
-      description: original.description,
-      thumbnail: original.thumbnail,
-      previewVideo: original.previewVideo,
-      price: original.price,
-      discountPrice: original.discountPrice,
-      categoryId: original.categoryId,
-      level: original.level,
-      instructor: original.instructor,
-      isPublished: false,
-      isFeatured: false,
-    },
-  });
-
-  for (const section of original.sections) {
-    const newSection = await prisma.section.create({
-      data: {
-        courseId: newCourse.id,
-        title: section.title,
-        order: section.order,
+  return await withDatabase(async () => {
+    const original = await prisma.course.findUnique({
+      where: { id: courseId },
+      include: {
+        sections: {
+          include: { lessons: true },
+        },
       },
     });
 
-    for (const lesson of section.lessons) {
-      await prisma.lesson.create({
+    if (!original) throw new Error("Course not found");
+
+    const newSlug = `${original.slug}-copy-${Date.now()}`;
+
+    const newCourse = await prisma.course.create({
+      data: {
+        title: `${original.title} (Copy)`,
+        slug: newSlug,
+        shortDescription: original.shortDescription,
+        description: original.description,
+        thumbnail: original.thumbnail,
+        previewVideo: original.previewVideo,
+        price: original.price,
+        discountPrice: original.discountPrice,
+        categoryId: original.categoryId,
+        level: original.level,
+        instructor: original.instructor,
+        isPublished: false,
+        isFeatured: false,
+      },
+    });
+
+    for (const section of original.sections) {
+      const newSection = await prisma.section.create({
         data: {
-          sectionId: newSection.id,
-          title: lesson.title,
-          description: lesson.description,
-          videoUrl: lesson.videoUrl,
-          duration: lesson.duration,
-          isFree: lesson.isFree,
-          order: lesson.order,
+          courseId: newCourse.id,
+          title: section.title,
+          order: section.order,
         },
       });
+
+      for (const lesson of section.lessons) {
+        await prisma.lesson.create({
+          data: {
+            sectionId: newSection.id,
+            title: lesson.title,
+            description: lesson.description,
+            videoUrl: lesson.videoUrl,
+            duration: lesson.duration,
+            isFree: lesson.isFree,
+            order: lesson.order,
+          },
+        });
+      }
     }
-  }
 
-  revalidatePath("/dashboard/courses");
+    revalidatePath("/dashboard/courses");
 
-  return newCourse;
+    return newCourse;
+  }, 'duplicateCourse');
 }
 
 // Section management
@@ -331,39 +333,43 @@ export async function createSection(courseId: string, title: string) {
 export async function updateSection(sectionId: string, title: string) {
   await checkAdminAccess();
 
-  const section = await prisma.section.update({
-    where: { id: sectionId },
-    data: { title },
-  });
+  return await withDatabase(async () => {
+    const section = await prisma.section.update({
+      where: { id: sectionId },
+      data: { title },
+    });
 
-  const course = await prisma.course.findFirst({
-    where: { sections: { some: { id: sectionId } } },
-  });
+    const course = await prisma.course.findFirst({
+      where: { sections: { some: { id: sectionId } } },
+    });
 
-  if (course) {
-    revalidatePath(`/dashboard/courses/${course.id}`);
-  }
+    if (course) {
+      revalidatePath(`/dashboard/courses/${course.id}`);
+    }
 
-  return section;
+    return section;
+  }, 'updateSection');
 }
 
 export async function deleteSection(sectionId: string) {
   await checkAdminAccess();
 
-  const section = await prisma.section.findUnique({
-    where: { id: sectionId },
-    select: { courseId: true },
-  });
+  return await withDatabase(async () => {
+    const section = await prisma.section.findUnique({
+      where: { id: sectionId },
+      select: { courseId: true },
+    });
 
-  await prisma.section.delete({
-    where: { id: sectionId },
-  });
+    await prisma.section.delete({
+      where: { id: sectionId },
+    });
 
-  if (section) {
-    revalidatePath(`/dashboard/courses/${section.courseId}`);
-  }
+    if (section) {
+      revalidatePath(`/dashboard/courses/${section.courseId}`);
+    }
 
-  return { success: true };
+    return { success: true };
+  }, 'deleteSection');
 }
 
 // Lesson management
@@ -379,33 +385,35 @@ export async function createLesson(
 ) {
   await checkAdminAccess();
 
-  const lastLesson = await prisma.lesson.findFirst({
-    where: { sectionId },
-    orderBy: { order: "desc" },
-  });
+  return await withDatabase(async () => {
+    const lastLesson = await prisma.lesson.findFirst({
+      where: { sectionId },
+      orderBy: { order: "desc" },
+    });
 
-  const section = await prisma.section.findUnique({
-    where: { id: sectionId },
-    select: { courseId: true },
-  });
+    const section = await prisma.section.findUnique({
+      where: { id: sectionId },
+      select: { courseId: true },
+    });
 
-  const lesson = await prisma.lesson.create({
-    data: {
-      sectionId,
-      title: data.title,
-      description: data.description,
-      videoUrl: data.videoUrl,
-      duration: data.duration || 0,
-      isFree: data.isFree || false,
-      order: (lastLesson?.order || 0) + 1,
-    },
-  });
+    const lesson = await prisma.lesson.create({
+      data: {
+        sectionId,
+        title: data.title,
+        description: data.description,
+        videoUrl: data.videoUrl,
+        duration: data.duration || 0,
+        isFree: data.isFree || false,
+        order: (lastLesson?.order || 0) + 1,
+      },
+    });
 
-  if (section) {
-    revalidatePath(`/dashboard/courses/${section.courseId}`);
-  }
+    if (section) {
+      revalidatePath(`/dashboard/courses/${section.courseId}`);
+    }
 
-  return lesson;
+    return lesson;
+  }, 'createLesson');
 }
 
 export async function updateLesson(
@@ -420,36 +428,40 @@ export async function updateLesson(
 ) {
   await checkAdminAccess();
 
-  const lesson = await prisma.lesson.update({
-    where: { id: lessonId },
-    data,
-    include: {
-      section: { select: { courseId: true } },
-    },
-  });
+  return await withDatabase(async () => {
+    const lesson = await prisma.lesson.update({
+      where: { id: lessonId },
+      data,
+      include: {
+        section: { select: { courseId: true } },
+      },
+    });
 
-  revalidatePath(`/dashboard/courses/${lesson.section.courseId}`);
+    revalidatePath(`/dashboard/courses/${lesson.section.courseId}`);
 
-  return lesson;
+    return lesson;
+  }, 'updateLesson');
 }
 
 export async function deleteLesson(lessonId: string) {
   await checkAdminAccess();
 
-  const lesson = await prisma.lesson.findUnique({
-    where: { id: lessonId },
-    include: {
-      section: { select: { courseId: true } },
-    },
-  });
+  return await withDatabase(async () => {
+    const lesson = await prisma.lesson.findUnique({
+      where: { id: lessonId },
+      include: {
+        section: { select: { courseId: true } },
+      },
+    });
 
-  await prisma.lesson.delete({
-    where: { id: lessonId },
-  });
+    await prisma.lesson.delete({
+      where: { id: lessonId },
+    });
 
-  if (lesson) {
-    revalidatePath(`/dashboard/courses/${lesson.section.courseId}`);
-  }
+    if (lesson) {
+      revalidatePath(`/dashboard/courses/${lesson.section.courseId}`);
+    }
 
-  return { success: true };
+    return { success: true };
+  }, 'deleteLesson');
 }
