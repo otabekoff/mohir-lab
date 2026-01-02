@@ -10,16 +10,19 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Users, BookOpen, MessageSquare, TrendingUp, Plus } from "lucide-react";
+  Users,
+  BookOpen,
+  MessageSquare,
+  TrendingUp,
+  Plus,
+  Star,
+} from "lucide-react";
 import Link from "next/link";
+import { getDashboardStats, getRecentEnrollments } from "@/actions/dashboard";
+import { getPendingReviews } from "@/actions/reviews";
+import { format } from "date-fns";
 import type { UserRole } from "@/types";
 
 interface ManagerDashboardProps {
@@ -30,59 +33,40 @@ interface ManagerDashboardProps {
   };
 }
 
-// Mock stats data
-const stats = [
-  {
-    title: "Active Students",
-    value: "15,420",
-    description: "Learning this month",
-    icon: Users,
-  },
-  {
-    title: "Total Courses",
-    value: "24",
-    description: "Published courses",
-    icon: BookOpen,
-  },
-  {
-    title: "Pending Reviews",
-    value: "12",
-    description: "Awaiting approval",
-    icon: MessageSquare,
-  },
-  {
-    title: "Completion Rate",
-    value: "68%",
-    description: "Average completion",
-    icon: TrendingUp,
-  },
-];
+export async function ManagerDashboard({ user }: ManagerDashboardProps) {
+  const [stats, recentEnrollments, pendingReviews] = await Promise.all([
+    getDashboardStats(),
+    getRecentEnrollments(5),
+    getPendingReviews(5),
+  ]);
 
-const pendingReviews = [
-  {
-    id: "1",
-    student: "John Doe",
-    course: "Complete Web Development",
-    rating: 4,
-    date: "2025-12-28",
-  },
-  {
-    id: "2",
-    student: "Jane Smith",
-    course: "Python for Data Science",
-    rating: 5,
-    date: "2025-12-28",
-  },
-  {
-    id: "3",
-    student: "Mike Johnson",
-    course: "React & Next.js Masterclass",
-    rating: 4,
-    date: "2025-12-27",
-  },
-];
+  const statsCards = [
+    {
+      title: "Active Students",
+      value: stats.students.total.toLocaleString(),
+      description: `+${stats.students.thisMonth} this month`,
+      icon: Users,
+    },
+    {
+      title: "Total Courses",
+      value: stats.courses.published.toString(),
+      description: `${stats.courses.draft} drafts`,
+      icon: BookOpen,
+    },
+    {
+      title: "Pending Reviews",
+      value: pendingReviews.length.toString(),
+      description: "Awaiting approval",
+      icon: MessageSquare,
+    },
+    {
+      title: "Avg Rating",
+      value: stats.reviews.averageRating.toFixed(1),
+      description: `${stats.reviews.total} total reviews`,
+      icon: TrendingUp,
+    },
+  ];
 
-export function ManagerDashboard({ user }: ManagerDashboardProps) {
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -105,7 +89,7 @@ export function ManagerDashboard({ user }: ManagerDashboardProps) {
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
+        {statsCards.map((stat) => (
           <Card key={stat.title}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
@@ -123,58 +107,102 @@ export function ManagerDashboard({ user }: ManagerDashboardProps) {
         ))}
       </div>
 
-      {/* Pending Reviews */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Pending Reviews</CardTitle>
-            <CardDescription>Reviews waiting for approval</CardDescription>
-          </div>
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/dashboard/reviews">View All</Link>
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Student</TableHead>
-                <TableHead>Course</TableHead>
-                <TableHead>Rating</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {pendingReviews.map((review) => (
-                <TableRow key={review.id}>
-                  <TableCell className="font-medium">
-                    {review.student}
-                  </TableCell>
-                  <TableCell>{review.course}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <span className="text-yellow-500">★</span>
-                      {review.rating}/5
+      {/* Two column layout */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Recent Enrollments */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Recent Enrollments</CardTitle>
+              <CardDescription>New student enrollments</CardDescription>
+            </div>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/dashboard/students">View All</Link>
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {recentEnrollments.length === 0 ? (
+              <p className="py-4 text-center text-muted-foreground">
+                No enrollments yet
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {recentEnrollments.map((enrollment) => (
+                  <div key={enrollment.id} className="flex items-center gap-4">
+                    <Avatar className="h-9 w-9">
+                      <AvatarImage src={enrollment.user.image ?? undefined} />
+                      <AvatarFallback>
+                        {enrollment.user.name?.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">
+                        {enrollment.user.name}
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {enrollment.course.title}
+                      </p>
                     </div>
-                  </TableCell>
-                  <TableCell>{review.date}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline">
-                        Approve
-                      </Button>
-                      <Button size="sm" variant="ghost">
-                        Reject
-                      </Button>
+                    <span className="text-xs text-muted-foreground">
+                      {format(new Date(enrollment.enrolledAt), "MMM d")}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Pending Reviews */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Pending Reviews</CardTitle>
+              <CardDescription>Reviews waiting for approval</CardDescription>
+            </div>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/dashboard/reviews">View All</Link>
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {pendingReviews.length === 0 ? (
+              <p className="py-4 text-center text-muted-foreground">
+                No pending reviews
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {pendingReviews.map((review) => (
+                  <div key={review.id} className="flex items-start gap-4">
+                    <Avatar className="h-9 w-9">
+                      <AvatarImage src={review.user.image ?? undefined} />
+                      <AvatarFallback>
+                        {review.user.name?.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium">
+                          {review.user.name}
+                        </p>
+                        <div className="flex items-center text-yellow-500">
+                          <Star className="h-3 w-3 fill-current" />
+                          <span className="ml-1 text-xs">{review.rating}</span>
+                        </div>
+                      </div>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {review.course.title}
+                      </p>
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                    <span className="text-xs text-muted-foreground">
+                      {format(new Date(review.createdAt), "MMM d")}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

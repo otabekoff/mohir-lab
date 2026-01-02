@@ -15,6 +15,8 @@ import { Progress } from "@/components/ui/progress";
 import { BookOpen, Award, Clock, PlayCircle, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { getCustomerDashboardStats } from "@/actions/dashboard";
+import { getContinueLearning } from "@/actions/enrollments";
 import type { UserRole } from "@/types";
 
 interface CustomerDashboardProps {
@@ -25,60 +27,30 @@ interface CustomerDashboardProps {
   };
 }
 
-// Mock stats data
-const stats = [
-  {
-    title: "Enrolled Courses",
-    value: "5",
-    icon: BookOpen,
-  },
-  {
-    title: "Certificates Earned",
-    value: "2",
-    icon: Award,
-  },
-  {
-    title: "Hours Learned",
-    value: "48",
-    icon: Clock,
-  },
-];
+export async function CustomerDashboard({ user }: CustomerDashboardProps) {
+  const [stats, enrolledCourses] = await Promise.all([
+    getCustomerDashboardStats(),
+    getContinueLearning(6),
+  ]);
 
-// Mock enrolled courses
-const enrolledCourses = [
-  {
-    id: "1",
-    title: "Complete Web Development Bootcamp 2026",
-    thumbnail: "/images/courses/web-dev.jpg",
-    progress: 65,
-    nextLesson: "JavaScript Async Patterns",
-    totalLessons: 320,
-    completedLessons: 208,
-    lastAccessed: "2025-12-28",
-  },
-  {
-    id: "2",
-    title: "Advanced React & Next.js Masterclass",
-    thumbnail: "/images/courses/react-next.jpg",
-    progress: 30,
-    nextLesson: "Server Components Deep Dive",
-    totalLessons: 180,
-    completedLessons: 54,
-    lastAccessed: "2025-12-27",
-  },
-  {
-    id: "3",
-    title: "Python for Data Science",
-    thumbnail: "/images/courses/python-ml.jpg",
-    progress: 100,
-    nextLesson: null,
-    totalLessons: 280,
-    completedLessons: 280,
-    lastAccessed: "2025-12-20",
-  },
-];
+  const statsCards = [
+    {
+      title: "Enrolled Courses",
+      value: stats.enrollments.total.toString(),
+      icon: BookOpen,
+    },
+    {
+      title: "Certificates Earned",
+      value: stats.certificates.toString(),
+      icon: Award,
+    },
+    {
+      title: "Hours Learned",
+      value: stats.watchTime.hours.toString(),
+      icon: Clock,
+    },
+  ];
 
-export function CustomerDashboard({ user }: CustomerDashboardProps) {
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -96,7 +68,7 @@ export function CustomerDashboard({ user }: CustomerDashboardProps) {
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-3">
-        {stats.map((stat) => (
+        {statsCards.map((stat) => (
           <Card key={stat.title}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
@@ -111,6 +83,40 @@ export function CustomerDashboard({ user }: CustomerDashboardProps) {
         ))}
       </div>
 
+      {/* Progress Summary */}
+      {stats.enrollments.total > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Learning Progress</CardTitle>
+            <CardDescription>
+              Your overall course completion status
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-green-600">
+                  {stats.enrollments.completed}
+                </div>
+                <p className="text-sm text-muted-foreground">Completed</p>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-blue-600">
+                  {stats.enrollments.inProgress}
+                </div>
+                <p className="text-sm text-muted-foreground">In Progress</p>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold">
+                  {Math.round(stats.averageProgress)}%
+                </div>
+                <p className="text-sm text-muted-foreground">Avg. Progress</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Continue Learning */}
       <div>
         <div className="mb-6 flex items-center justify-between">
@@ -123,62 +129,85 @@ export function CustomerDashboard({ user }: CustomerDashboardProps) {
           </Button>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {enrolledCourses.map((course) => (
-            <Card key={course.id} className="overflow-hidden">
-              <div className="relative aspect-video">
-                <Image
-                  src={course.thumbnail}
-                  alt={course.title}
-                  fill
-                  className="object-cover"
-                />
-                {course.progress === 100 && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/60">
-                    <Badge className="px-3 py-1 text-lg">
-                      <Award className="mr-2 h-5 w-5" />
-                      Completed
-                    </Badge>
-                  </div>
-                )}
-              </div>
-              <CardHeader className="pb-2">
-                <CardTitle className="line-clamp-2 text-base">
-                  {course.title}
-                </CardTitle>
-                <CardDescription>
-                  {course.completedLessons} of {course.totalLessons} lessons
-                  completed
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Progress</span>
-                    <span className="font-medium">{course.progress}%</span>
-                  </div>
-                  <Progress value={course.progress} />
+        {enrolledCourses.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <BookOpen className="mb-4 h-12 w-12 text-muted-foreground" />
+              <h3 className="mb-2 text-lg font-semibold">No courses yet</h3>
+              <p className="mb-4 text-muted-foreground">
+                Start your learning journey by enrolling in a course
+              </p>
+              <Button asChild>
+                <Link href="/courses">Browse Courses</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {enrolledCourses.map((enrollment) => (
+              <Card key={enrollment.id} className="overflow-hidden py-0">
+                <div className="relative aspect-video bg-muted">
+                  {enrollment.course.thumbnail ? (
+                    <Image
+                      src={enrollment.course.thumbnail}
+                      alt={enrollment.course.title}
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <BookOpen className="h-12 w-12 text-muted-foreground" />
+                    </div>
+                  )}
+                  {enrollment.completedAt && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/60">
+                      <Badge className="px-3 py-1 text-lg">
+                        <Award className="mr-2 h-5 w-5" />
+                        Completed
+                      </Badge>
+                    </div>
+                  )}
                 </div>
+                <CardHeader className="pb-2">
+                  <CardTitle className="line-clamp-2 text-base">
+                    {enrollment.course.title}
+                  </CardTitle>
+                  <CardDescription>
+                    {enrollment.completedLessons} of{" "}
+                    {enrollment.course.lessonsCount} lessons completed
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Progress</span>
+                      <span className="font-medium">
+                        {enrollment.progress}%
+                      </span>
+                    </div>
+                    <Progress value={enrollment.progress} />
+                  </div>
 
-                {course.nextLesson ? (
-                  <Button className="w-full" asChild>
-                    <Link href={`/learn/${course.id}`}>
-                      <PlayCircle className="mr-2 h-4 w-4" />
-                      Continue: {course.nextLesson}
-                    </Link>
-                  </Button>
-                ) : (
-                  <Button variant="secondary" className="w-full" asChild>
-                    <Link href={`/dashboard/certificates`}>
-                      <Award className="mr-2 h-4 w-4" />
-                      View Certificate
-                    </Link>
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                  {!enrollment.completedAt ? (
+                    <Button className="w-full" asChild>
+                      <Link href={`/learn/${enrollment.course.slug}`}>
+                        <PlayCircle className="mr-2 h-4 w-4" />
+                        Continue Learning
+                      </Link>
+                    </Button>
+                  ) : (
+                    <Button variant="secondary" className="w-full" asChild>
+                      <Link href="/dashboard/certificates">
+                        <Award className="mr-2 h-4 w-4" />
+                        View Certificate
+                      </Link>
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Quick Actions */}

@@ -2,9 +2,8 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider        = "prisma-client-js"
-  output          = "../src/generated/prisma"
-  previewFeatures = ["driverAdapters"]
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -32,13 +31,14 @@ model User {
   role          UserRole  @default(customer)
 
   // Relations
-  accounts     Account[]
-  sessions     Session[]
-  enrollments  Enrollment[]
-  reviews      Review[]
-  orders       Order[]
-  progress     LessonProgress[]
-  certificates Certificate[]
+  accounts      Account[]
+  sessions      Session[]
+  enrollments   Enrollment[]
+  reviews       Review[]
+  orders        Order[]
+  progress      LessonProgress[]
+  certificates  Certificate[]
+  notifications Notification[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -339,4 +339,32 @@ model Certificate {
   @@unique([userId, courseId])
   @@index([certificateId])
   @@index([userId])
+}
+
+// ============================================
+// Notifications
+// ============================================
+
+enum NotificationType {
+  enrollment
+  order
+  review
+  certificate
+  info
+}
+
+model Notification {
+  id      String           @id @default(cuid())
+  type    NotificationType
+  title   String
+  message String
+  read    Boolean          @default(false)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([read])
 }

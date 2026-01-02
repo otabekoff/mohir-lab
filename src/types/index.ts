@@ -52,7 +52,7 @@ export type CourseLevel =
     | "beginner"
     | "intermediate"
     | "advanced"
-    | "all-levels";
+    | "all_levels";
 
 export interface CourseSection {
     id: string;

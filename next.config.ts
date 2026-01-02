@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 import createMDX from "@next/mdx";
+import remarkGfm from "remark-gfm";
+import rehypeHighlight from "rehype-highlight";
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -23,11 +25,12 @@ const nextConfig: NextConfig = {
   },
 };
 
+// MDX plugins work with webpack (production builds)
+// For dev with Turbopack, use `bun dev:webpack` if you need plugins
 const withMDX = createMDX({
-  // Add markdown plugins here, as desired
   options: {
-    remarkPlugins: [],
-    rehypePlugins: [],
+    remarkPlugins: [remarkGfm],
+    rehypePlugins: [rehypeHighlight],
   },
 });
 

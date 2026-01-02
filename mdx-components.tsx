@@ -11,23 +11,30 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
   return {
     // Customize built-in components
     h1: ({ children }) => (
-      <h1 className="mt-8 mb-4 text-4xl font-bold tracking-tight">
+      <h1 className="mt-8 mb-4 text-4xl font-bold tracking-tight text-foreground">
         {children}
       </h1>
     ),
     h2: ({ children }) => (
-      <h2 className="mt-8 mb-4 text-3xl font-semibold tracking-tight">
+      <h2 className="mt-8 mb-4 text-3xl font-semibold tracking-tight text-foreground">
         {children}
       </h2>
     ),
     h3: ({ children }) => (
-      <h3 className="mt-6 mb-3 text-2xl font-semibold">{children}</h3>
+      <h3 className="mt-6 mb-3 text-2xl font-semibold text-foreground">
+        {children}
+      </h3>
     ),
     h4: ({ children }) => (
-      <h4 className="mt-4 mb-2 text-xl font-semibold">{children}</h4>
+      <h4 className="mt-4 mb-2 text-xl font-semibold text-foreground">
+        {children}
+      </h4>
     ),
     p: ({ children }) => (
       <p className="my-4 leading-7 text-muted-foreground">{children}</p>
+    ),
+    strong: ({ children }) => (
+      <strong className="font-semibold text-foreground">{children}</strong>
     ),
     a: ({ href, children }) => (
       <Link
@@ -51,16 +58,6 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
         {children}
       </blockquote>
     ),
-    code: ({ children }) => (
-      <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-sm">
-        {children}
-      </code>
-    ),
-    pre: ({ children }) => (
-      <pre className="my-4 overflow-x-auto rounded-lg bg-muted p-4">
-        {children}
-      </pre>
-    ),
     img: (props) => (
       <Image
         sizes="100vw"
@@ -71,20 +68,59 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
       />
     ),
     hr: () => <hr className="my-8 border-border" />,
+    // Code blocks - styled with highlight.js
+    pre: ({ children, ...props }) => (
+      <pre
+        className="my-6 overflow-x-auto rounded-lg bg-[#0d1117] p-4 text-sm"
+        {...props}
+      >
+        {children}
+      </pre>
+    ),
+    code: ({ children, className, ...props }) => {
+      // Check if this is an inline code (no language class like "language-*")
+      const isCodeBlock =
+        className?.includes("language-") || className?.includes("hljs");
+      if (!isCodeBlock) {
+        return (
+          <code
+            className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-sm font-medium text-primary"
+            {...props}
+          >
+            {children}
+          </code>
+        );
+      }
+      return (
+        <code className={className} {...props}>
+          {children}
+        </code>
+      );
+    },
+    // Table components - properly styled for GFM tables
     table: ({ children }) => (
-      <div className="my-6 overflow-x-auto">
-        <table className="w-full border-collapse border border-border">
+      <div className="my-6 overflow-x-auto rounded-lg border border-border">
+        <table className="my-0! w-full border-collapse text-sm">
           {children}
         </table>
       </div>
     ),
+    thead: ({ children }) => (
+      <thead className="border-b border-border bg-muted/50">{children}</thead>
+    ),
+    tbody: ({ children }) => (
+      <tbody className="divide-y divide-border">{children}</tbody>
+    ),
+    tr: ({ children }) => (
+      <tr className="transition-colors hover:bg-muted/30">{children}</tr>
+    ),
     th: ({ children }) => (
-      <th className="border border-border bg-muted px-4 py-2 text-left font-semibold">
+      <th className="px-4 py-3 text-left font-semibold text-foreground">
         {children}
       </th>
     ),
     td: ({ children }) => (
-      <td className="border border-border px-4 py-2">{children}</td>
+      <td className="px-4 py-3 text-muted-foreground">{children}</td>
     ),
     ...components,
   };

@@ -282,6 +282,16 @@ exports.Prisma.CertificateScalarFieldEnum = {
   issuedAt: 'issuedAt'
 };
 
+exports.Prisma.NotificationScalarFieldEnum = {
+  id: 'id',
+  type: 'type',
+  title: 'title',
+  message: 'message',
+  read: 'read',
+  userId: 'userId',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -323,6 +333,14 @@ exports.OrderStatus = exports.$Enums.OrderStatus = {
   refunded: 'refunded'
 };
 
+exports.NotificationType = exports.$Enums.NotificationType = {
+  enrollment: 'enrollment',
+  order: 'order',
+  review: 'review',
+  certificate: 'certificate',
+  info: 'info'
+};
+
 exports.Prisma.ModelName = {
   User: 'User',
   Account: 'Account',
@@ -337,7 +355,8 @@ exports.Prisma.ModelName = {
   LessonProgress: 'LessonProgress',
   Review: 'Review',
   Order: 'Order',
-  Certificate: 'Certificate'
+  Certificate: 'Certificate',
+  Notification: 'Notification'
 };
 
 /**

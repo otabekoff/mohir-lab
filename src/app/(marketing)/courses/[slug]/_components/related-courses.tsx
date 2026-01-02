@@ -6,114 +6,55 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { CourseCard } from "@/components/courses/course-card";
 import { ArrowRight } from "lucide-react";
-import type { Course } from "@/types";
+import { getRelatedCourses } from "@/actions/courses";
 
 interface RelatedCoursesProps {
+  courseId: string;
   categoryId: string;
-  currentCourseId: string;
 }
 
-// Mock related courses
-const mockRelatedCourses: Course[] = [
-  {
-    id: "3",
-    title: "Advanced React & Next.js Masterclass",
-    slug: "advanced-react-nextjs-masterclass",
-    description:
-      "Build production-ready applications with React 19 & Next.js 16",
-    shortDescription:
-      "Take your React skills to the next level with advanced patterns and Next.js.",
-    thumbnail: "https://picsum.photos/seed/react/800/450",
-    price: 149.99,
-    discountPrice: 79.99,
-    level: "advanced",
-    category: {
-      id: "1",
-      name: "Web Development",
-      slug: "web-development",
-      coursesCount: 15,
-    },
-    categoryId: "1",
-    instructor: "Michael Chen",
-    duration: 2400,
-    lessonsCount: 180,
-    studentsCount: 8920,
-    rating: 4.9,
-    reviewsCount: 1560,
-    isPublished: true,
-    isFeatured: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    sections: [],
-  },
-  {
-    id: "4",
-    title: "Node.js Backend Development",
-    slug: "nodejs-backend-development",
-    description: "Master Node.js, Express, and build RESTful APIs",
-    shortDescription:
-      "Build scalable backend applications with Node.js and Express.",
-    thumbnail: "https://picsum.photos/seed/nodejs/800/450",
-    price: 99.99,
-    level: "intermediate",
-    category: {
-      id: "1",
-      name: "Web Development",
-      slug: "web-development",
-      coursesCount: 15,
-    },
-    categoryId: "1",
-    instructor: "Alex Johnson",
-    duration: 1800,
-    lessonsCount: 140,
-    studentsCount: 5420,
-    rating: 4.7,
-    reviewsCount: 890,
-    isPublished: true,
-    isFeatured: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    sections: [],
-  },
-  {
-    id: "5",
-    title: "TypeScript Complete Guide",
-    slug: "typescript-complete-guide",
-    description: "Master TypeScript from basics to advanced",
-    shortDescription:
-      "Learn TypeScript and write type-safe JavaScript applications.",
-    thumbnail: "https://picsum.photos/seed/typescript/800/450",
-    price: 79.99,
-    level: "intermediate",
-    category: {
-      id: "1",
-      name: "Web Development",
-      slug: "web-development",
-      coursesCount: 15,
-    },
-    categoryId: "1",
-    instructor: "Sarah Williams",
-    duration: 1200,
-    lessonsCount: 100,
-    studentsCount: 4120,
-    rating: 4.8,
-    reviewsCount: 720,
-    isPublished: true,
-    isFeatured: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    sections: [],
-  },
-];
-
-export function RelatedCourses({
+export async function RelatedCourses({
+  courseId,
   categoryId,
-  currentCourseId,
 }: RelatedCoursesProps) {
-  // Filter out current course and get related courses
-  const courses = mockRelatedCourses.filter(
-    (c) => c.categoryId === categoryId && c.id !== currentCourseId,
-  );
+  const dbCourses = await getRelatedCourses(courseId, categoryId, 3);
+
+  // Transform database courses to frontend Course type
+  const courses = dbCourses.map((course) => ({
+    id: course.id,
+    title: course.title,
+    slug: course.slug,
+    description: course.description,
+    shortDescription: course.shortDescription,
+    thumbnail: course.thumbnail || "/placeholder-course.jpg",
+    price: Number(course.price),
+    discountPrice: course.discountPrice
+      ? Number(course.discountPrice)
+      : undefined,
+    level: course.level as
+      | "beginner"
+      | "intermediate"
+      | "advanced"
+      | "all_levels",
+    category: {
+      id: course.category.id,
+      name: course.category.name,
+      slug: course.category.slug,
+      coursesCount: 0,
+    },
+    categoryId: course.categoryId,
+    instructor: course.instructor,
+    duration: course.duration,
+    lessonsCount: course.lessonsCount,
+    studentsCount: course.studentsCount,
+    rating: course.rating,
+    reviewsCount: course.reviewsCount,
+    isPublished: course.isPublished,
+    isFeatured: course.isFeatured,
+    createdAt: course.createdAt,
+    updatedAt: course.updatedAt,
+    sections: [],
+  }));
 
   if (courses.length === 0) return null;
 
@@ -127,7 +68,7 @@ export function RelatedCourses({
           </p>
         </div>
         <Button variant="outline" asChild className="hidden gap-2 sm:flex">
-          <Link href={`/courses?category=${categoryId}`}>
+          <Link href={`/courses?category=${courses[0]?.category.slug || ""}`}>
             View All
             <ArrowRight className="h-4 w-4" />
           </Link>
