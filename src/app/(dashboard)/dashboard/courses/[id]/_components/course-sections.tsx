@@ -40,11 +40,12 @@ import {
   Pencil,
   Plus,
   Trash2,
-  Play,
   Clock,
   Loader2,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { LessonTypeIcon } from "@/components/lessons";
+import { LessonType } from "@/types";
 import {
   createSection,
   updateSection,
@@ -58,8 +59,10 @@ import { toast } from "sonner";
 interface Lesson {
   id: string;
   title: string;
+  type: string;
   description: string | null;
-  videoUrl: string;
+  videoUrl: string | null;
+  content: string | null;
   duration: number;
   order: number;
   isFree: boolean;
@@ -201,7 +204,7 @@ export function CourseSections({ course }: CourseSectionsProps) {
       lessonId: lesson.id,
       title: lesson.title,
       description: lesson.description || "",
-      videoUrl: lesson.videoUrl,
+      videoUrl: lesson.videoUrl || "",
       duration: lesson.duration.toString(),
       isFree: lesson.isFree,
     });
@@ -358,7 +361,10 @@ export function CourseSections({ course }: CourseSectionsProps) {
                               className="flex items-center gap-2 rounded-md p-2 hover:bg-muted/50"
                             >
                               <GripVertical className="h-4 w-4 cursor-grab text-muted-foreground" />
-                              <Play className="h-4 w-4 text-muted-foreground" />
+                              <LessonTypeIcon
+                                type={lesson.type as LessonType}
+                                className="h-4 w-4"
+                              />
                               <span className="flex-1">
                                 {sectionIndex + 1}.{lessonIndex + 1}{" "}
                                 {lesson.title}

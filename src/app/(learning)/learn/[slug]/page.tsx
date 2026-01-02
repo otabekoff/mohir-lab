@@ -6,7 +6,12 @@ import { notFound, redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth.config";
 import { getCourseForLearning } from "@/actions/courses";
-import { isEnrolledBySlug, getEnrollmentBySlug, getLessonProgress, getCourseLessonProgress } from "@/actions/enrollments";
+import {
+  isEnrolledBySlug,
+  getEnrollmentBySlug,
+  getLessonProgress,
+  getCourseLessonProgress,
+} from "@/actions/enrollments";
 import { LearningPlayer } from "./_components/learning-player";
 import { LearningSidebar } from "./_components/learning-sidebar";
 import { LearningHeader } from "./_components/learning-header";
@@ -85,9 +90,11 @@ export default async function LearnPage({
 
   // Get lesson progress
   let isLessonCompleted = false;
+  let currentLessonProgress = null;
   if (currentLesson) {
     const lessonProgress = await getLessonProgress(currentLesson.id);
     isLessonCompleted = lessonProgress?.isCompleted ?? false;
+    currentLessonProgress = lessonProgress;
   }
 
   return (
@@ -100,8 +107,9 @@ export default async function LearnPage({
       <div className="flex flex-1 overflow-hidden">
         {/* Video Player Area */}
         <div className="flex-1 overflow-auto">
-          <LearningPlayer 
-            lesson={currentLesson} 
+          <LearningPlayer
+            lesson={currentLesson}
+            progress={currentLessonProgress}
             isCompleted={isLessonCompleted}
           />
         </div>

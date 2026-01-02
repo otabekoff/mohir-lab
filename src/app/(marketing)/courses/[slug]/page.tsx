@@ -67,6 +67,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
       lessons: section.lessons.map((lesson) => ({
         id: lesson.id,
         title: lesson.title,
+        type: lesson.type,
         videoUrl: lesson.videoUrl || "", // Include videoUrl for free lesson preview
         duration: lesson.duration,
         order: lesson.order,

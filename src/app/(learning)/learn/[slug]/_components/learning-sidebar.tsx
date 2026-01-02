@@ -21,6 +21,8 @@ import {
   CheckCircle2,
   Clock,
 } from "lucide-react";
+import { LessonTypeIcon } from "@/components/lessons";
+import { LessonType } from "@/types";
 
 interface Section {
   id: string;
@@ -32,6 +34,7 @@ interface Section {
 interface Lesson {
   id: string;
   title: string;
+  type: LessonType;
   duration: number;
   order: number;
   isFree: boolean;
@@ -87,7 +90,7 @@ export function LearningSidebar({
   // Check if lesson is completed
   const isLessonCompleted = (lessonId: string) => {
     return lessonProgress.some(
-      (lp) => lp.lessonId === lessonId && lp.isCompleted
+      (lp) => lp.lessonId === lessonId && lp.isCompleted,
     );
   };
 
@@ -159,17 +162,25 @@ export function LearningSidebar({
                         <div className="shrink-0">
                           {isCompleted ? (
                             <CheckCircle2 className="h-4 w-4 text-green-500" />
-                          ) : isActive ? (
-                            <Play className="h-4 w-4" />
                           ) : (
-                            <Play className="h-4 w-4 opacity-50" />
+                            <LessonTypeIcon
+                              type={lesson.type || "video"}
+                              className={cn(
+                                isActive
+                                  ? "text-primary-foreground"
+                                  : "opacity-70",
+                              )}
+                              size={16}
+                            />
                           )}
                         </div>
                         <div className="flex-1 truncate">{lesson.title}</div>
-                        <div className="flex shrink-0 items-center gap-1 text-xs opacity-70">
-                          <Clock className="h-3 w-3" />
-                          {formatDuration(lesson.duration)}
-                        </div>
+                        {lesson.duration > 0 && (
+                          <div className="flex shrink-0 items-center gap-1 text-xs opacity-70">
+                            <Clock className="h-3 w-3" />
+                            {formatDuration(lesson.duration)}
+                          </div>
+                        )}
                       </Link>
                     );
                   })}

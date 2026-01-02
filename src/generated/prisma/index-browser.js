@@ -209,11 +209,101 @@ exports.Prisma.LessonScalarFieldEnum = {
   id: 'id',
   title: 'title',
   description: 'description',
-  videoUrl: 'videoUrl',
-  duration: 'duration',
+  type: 'type',
   order: 'order',
   isFree: 'isFree',
+  duration: 'duration',
+  videoUrl: 'videoUrl',
+  videoThumbnail: 'videoThumbnail',
+  subtitlesUrl: 'subtitlesUrl',
+  content: 'content',
+  passingScore: 'passingScore',
+  timeLimit: 'timeLimit',
+  shuffleOptions: 'shuffleOptions',
+  showAnswers: 'showAnswers',
+  instructions: 'instructions',
+  allowFileUpload: 'allowFileUpload',
+  allowTextSubmission: 'allowTextSubmission',
+  allowedFileTypes: 'allowedFileTypes',
+  maxFileSize: 'maxFileSize',
+  dueDate: 'dueDate',
+  requiresManualReview: 'requiresManualReview',
+  starterCode: 'starterCode',
+  solutionCode: 'solutionCode',
+  language: 'language',
+  testCases: 'testCases',
+  allowedLanguages: 'allowedLanguages',
+  externalUrl: 'externalUrl',
+  externalType: 'externalType',
+  scheduledAt: 'scheduledAt',
+  recordingUrl: 'recordingUrl',
+  requiredLessons: 'requiredLessons',
+  allowComments: 'allowComments',
   sectionId: 'sectionId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.QuizQuestionScalarFieldEnum = {
+  id: 'id',
+  lessonId: 'lessonId',
+  type: 'type',
+  question: 'question',
+  explanation: 'explanation',
+  points: 'points',
+  order: 'order',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.QuizOptionScalarFieldEnum = {
+  id: 'id',
+  questionId: 'questionId',
+  text: 'text',
+  isCorrect: 'isCorrect',
+  order: 'order',
+  matchesTo: 'matchesTo'
+};
+
+exports.Prisma.QuizAnswerScalarFieldEnum = {
+  id: 'id',
+  questionId: 'questionId',
+  userId: 'userId',
+  answer: 'answer',
+  isCorrect: 'isCorrect',
+  points: 'points',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.LessonSubmissionScalarFieldEnum = {
+  id: 'id',
+  lessonId: 'lessonId',
+  userId: 'userId',
+  status: 'status',
+  textContent: 'textContent',
+  codeContent: 'codeContent',
+  fileUrls: 'fileUrls',
+  codeOutput: 'codeOutput',
+  testResults: 'testResults',
+  passedTests: 'passedTests',
+  totalTests: 'totalTests',
+  score: 'score',
+  feedback: 'feedback',
+  gradedBy: 'gradedBy',
+  gradedAt: 'gradedAt',
+  submittedAt: 'submittedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.LessonCommentScalarFieldEnum = {
+  id: 'id',
+  lessonId: 'lessonId',
+  userId: 'userId',
+  content: 'content',
+  parentId: 'parentId',
+  isPinned: 'isPinned',
+  isInstructor: 'isInstructor',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -242,6 +332,11 @@ exports.Prisma.LessonProgressScalarFieldEnum = {
   userId: 'userId',
   lessonId: 'lessonId',
   watchedSeconds: 'watchedSeconds',
+  quizScore: 'quizScore',
+  quizAttempts: 'quizAttempts',
+  lastQuizDate: 'lastQuizDate',
+  codePassed: 'codePassed',
+  codeScore: 'codeScore',
   isCompleted: 'isCompleted',
   completedAt: 'completedAt',
   createdAt: 'createdAt',
@@ -326,9 +421,50 @@ exports.CourseLevel = exports.$Enums.CourseLevel = {
   all_levels: 'all_levels'
 };
 
+exports.LessonType = exports.$Enums.LessonType = {
+  video: 'video',
+  text: 'text',
+  quiz: 'quiz',
+  assignment: 'assignment',
+  coding: 'coding',
+  project: 'project',
+  task: 'task',
+  exam: 'exam',
+  milestone: 'milestone',
+  discussion: 'discussion',
+  announcement: 'announcement',
+  survey: 'survey',
+  resource: 'resource',
+  external: 'external',
+  live: 'live',
+  group_work: 'group_work',
+  certificate: 'certificate'
+};
+
+exports.QuestionType = exports.$Enums.QuestionType = {
+  multiple_choice: 'multiple_choice',
+  multi_select: 'multi_select',
+  true_false: 'true_false',
+  fill_blank: 'fill_blank',
+  matching: 'matching',
+  short_answer: 'short_answer',
+  code: 'code'
+};
+
+exports.SubmissionStatus = exports.$Enums.SubmissionStatus = {
+  draft: 'draft',
+  submitted: 'submitted',
+  under_review: 'under_review',
+  graded: 'graded',
+  returned: 'returned'
+};
+
 exports.ResourceType = exports.$Enums.ResourceType = {
   pdf: 'pdf',
   code: 'code',
+  slides: 'slides',
+  cheatsheet: 'cheatsheet',
+  source_code: 'source_code',
   link: 'link',
   file: 'file'
 };
@@ -357,6 +493,11 @@ exports.Prisma.ModelName = {
   Course: 'Course',
   Section: 'Section',
   Lesson: 'Lesson',
+  QuizQuestion: 'QuizQuestion',
+  QuizOption: 'QuizOption',
+  QuizAnswer: 'QuizAnswer',
+  LessonSubmission: 'LessonSubmission',
+  LessonComment: 'LessonComment',
   Resource: 'Resource',
   Enrollment: 'Enrollment',
   LessonProgress: 'LessonProgress',

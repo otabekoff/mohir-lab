@@ -172,30 +172,247 @@ model Section {
     @@index([courseId])
 }
 
-model Lesson {
-    id          String  @id @default(cuid())
-    title       String
-    description String? @db.Text
-    videoUrl    String // Secure video URL (stored encrypted or with signed access)
-    duration    Int     @default(0) // Duration in seconds
-    order       Int
-    isFree      Boolean @default(false) // Free preview lesson
+// ============================================
+// Lesson Types Enum
+// ============================================
 
-    sectionId String
-    section   Section          @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-    resources Resource[]
-    progress  LessonProgress[]
+enum LessonType {
+    video // 🎥 Video Lesson - Recorded lectures, screencasts
+    text // 📝 Text/Article - Written explanations, markdown
+    quiz // ❓ Quiz/Test - Multiple choice, true/false, etc.
+    assignment // 📂 Assignment/Homework - File upload, text submission
+    coding // 💻 Coding Exercise - In-browser editor, auto-grading
+    project // 🧪 Project/Case Study - Real-world multi-step task
+    task // 🎯 Task/Challenge - Simple "do and mark complete"
+    exam // 📊 Exam/Final Test - Combination quiz, passing score required
+    milestone // 🏁 Milestone/Checkpoint - Progress gate
+    discussion // 💬 Discussion/Q&A - Lesson-specific comments
+    announcement // 📢 Announcement - Instructor messages
+    survey // 🧠 Reflection/Survey - Feedback forms
+    resource // 📎 Downloadable Resource - PDFs, code, slides
+    external // 🔗 External Resource - YouTube, GitHub, docs
+    live // 📺 Live Lesson - Zoom/Meet integration
+    group_work // 🤝 Group Work - Team assignments, peer review
+    certificate // 🏆 Certificate Lesson - Issued after completion
+}
+
+model Lesson {
+    id          String     @id @default(cuid())
+    title       String
+    description String?    @db.Text
+    type        LessonType @default(video)
+    order       Int
+    isFree      Boolean    @default(false) // Free preview lesson
+    duration    Int        @default(0) // Estimated duration in seconds
+
+    // Content based on type (polymorphic content)
+    // For video type
+    videoUrl       String? // Secure video URL
+    videoThumbnail String?
+    subtitlesUrl   String? // VTT subtitles file
+
+    // For text type
+    content String? @db.Text // Markdown/rich text content
+
+    // For quiz/exam type
+    passingScore   Int?     @default(70) // Percentage required to pass
+    timeLimit      Int? // Time limit in minutes (null = unlimited)
+    shuffleOptions Boolean? @default(false)
+    showAnswers    Boolean? @default(true) // Show correct answers after
+
+    // For assignment type
+    instructions         String?   @db.Text
+    allowFileUpload      Boolean?  @default(true)
+    allowTextSubmission  Boolean?  @default(true)
+    allowedFileTypes     String? // Comma-separated: pdf,zip,jpg
+    maxFileSize          Int? // Max file size in MB
+    dueDate              DateTime?
+    requiresManualReview Boolean?  @default(true)
+
+    // For coding type
+    starterCode      String? @db.Text
+    solutionCode     String? @db.Text
+    language         String? // python, javascript, html, etc.
+    testCases        String? @db.Text // JSON array of test cases
+    allowedLanguages String? // Comma-separated languages
+
+    // For external/live type
+    externalUrl  String? // YouTube, GitHub, Zoom link
+    externalType String? // youtube, github, zoom, meet, custom
+    scheduledAt  DateTime? // For live lessons
+    recordingUrl String? // Recording after live session
+
+    // For milestone type
+    requiredLessons String? // JSON array of lesson IDs that must be completed
+
+    // For discussion type
+    allowComments Boolean? @default(true)
+
+    // Relations
+    sectionId   String
+    section     Section            @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+    resources   Resource[]
+    progress    LessonProgress[]
+    questions   QuizQuestion[]
+    submissions LessonSubmission[]
+    comments    LessonComment[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
     @@unique([sectionId, order])
     @@index([sectionId])
+    @@index([type])
 }
+
+// ============================================
+// Quiz Questions & Options
+// ============================================
+
+enum QuestionType {
+    multiple_choice // Single correct answer
+    multi_select // Multiple correct answers
+    true_false
+    fill_blank // Fill in the blank
+    matching // Match pairs
+    short_answer // Text answer
+    code // Code answer
+}
+
+model QuizQuestion {
+    id          String       @id @default(cuid())
+    lessonId    String
+    lesson      Lesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+    type        QuestionType @default(multiple_choice)
+    question    String       @db.Text
+    explanation String?      @db.Text // Explanation shown after answering
+    points      Int          @default(1)
+    order       Int
+
+    options QuizOption[]
+    answers QuizAnswer[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@unique([lessonId, order])
+    @@index([lessonId])
+}
+
+model QuizOption {
+    id         String       @id @default(cuid())
+    questionId String
+    question   QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+    text       String       @db.Text
+    isCorrect  Boolean      @default(false)
+    order      Int
+
+    // For matching questions - what this option matches to
+    matchesTo String?
+
+    @@unique([questionId, order])
+    @@index([questionId])
+}
+
+model QuizAnswer {
+    id         String       @id @default(cuid())
+    questionId String
+    question   QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+    userId     String
+    answer     String       @db.Text // JSON for complex answers
+    isCorrect  Boolean
+    points     Int          @default(0) // Points earned
+
+    createdAt DateTime @default(now())
+
+    @@unique([questionId, userId])
+    @@index([questionId])
+    @@index([userId])
+}
+
+// ============================================
+// Lesson Submissions (Assignments, Coding, Projects)
+// ============================================
+
+enum SubmissionStatus {
+    draft
+    submitted
+    under_review
+    graded
+    returned // Returned for revision
+}
+
+model LessonSubmission {
+    id       String           @id @default(cuid())
+    lessonId String
+    lesson   Lesson           @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+    userId   String
+    status   SubmissionStatus @default(draft)
+
+    // Content
+    textContent String? @db.Text // Text submission
+    codeContent String? @db.Text // Code submission
+    fileUrls    String? @db.Text // JSON array of file URLs
+
+    // Code execution results
+    codeOutput  String? @db.Text
+    testResults String? @db.Text // JSON with test results
+    passedTests Int?
+    totalTests  Int?
+
+    // Grading
+    score    Int? // Score out of 100
+    feedback String?   @db.Text // Instructor feedback
+    gradedBy String? // User ID of grader
+    gradedAt DateTime?
+
+    submittedAt DateTime?
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt
+
+    @@unique([lessonId, userId])
+    @@index([lessonId])
+    @@index([userId])
+    @@index([status])
+}
+
+// ============================================
+// Lesson Comments (Discussion)
+// ============================================
+
+model LessonComment {
+    id       String @id @default(cuid())
+    lessonId String
+    lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+    userId   String
+    content  String @db.Text
+
+    // For threaded comments
+    parentId String?
+    parent   LessonComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+    replies  LessonComment[] @relation("CommentReplies")
+
+    isPinned     Boolean @default(false)
+    isInstructor Boolean @default(false) // Posted by instructor
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([lessonId])
+    @@index([userId])
+    @@index([parentId])
+}
+
+// ============================================
+// Resources (Downloadable files)
+// ============================================
 
 enum ResourceType {
     pdf
     code
+    slides
+    cheatsheet
+    source_code
     link
     file
 }
@@ -247,9 +464,21 @@ model LessonProgress {
     lessonId String
     lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 
-    watchedSeconds Int       @default(0) // How many seconds watched
-    isCompleted    Boolean   @default(false)
-    completedAt    DateTime?
+    // For video lessons
+    watchedSeconds Int @default(0) // How many seconds watched
+
+    // For quiz/exam lessons
+    quizScore    Int? // Score achieved (percentage)
+    quizAttempts Int       @default(0)
+    lastQuizDate DateTime?
+
+    // For coding lessons
+    codePassed Boolean? // All tests passed
+    codeScore  Int? // Score percentage
+
+    // General completion
+    isCompleted Boolean   @default(false)
+    completedAt DateTime?
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt

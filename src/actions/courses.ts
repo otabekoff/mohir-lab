@@ -21,6 +21,7 @@ export type CourseWithDetails = Prisma.CourseGetPayload<{
                     select: {
                         id: true;
                         title: true;
+                        type: true;
                         duration: true;
                         isFree: true;
                         order: true;
@@ -132,6 +133,7 @@ export async function getCourseBySlug(
                         select: {
                             id: true,
                             title: true,
+                            type: true,
                             duration: true,
                             isFree: true,
                             order: true,
@@ -189,14 +191,16 @@ export async function getCourseForLearning(slug: string) {
                 include: {
                     lessons: {
                         orderBy: { order: "asc" },
-                        select: {
-                            id: true,
-                            title: true,
-                            description: true,
-                            videoUrl: true, // Include video URL for enrolled users
-                            duration: true,
-                            isFree: true,
-                            order: true,
+                        include: {
+                            resources: true,
+                            questions: {
+                                orderBy: { order: "asc" },
+                                include: {
+                                    options: {
+                                        orderBy: { order: "asc" },
+                                    },
+                                },
+                            },
                         },
                     },
                 },

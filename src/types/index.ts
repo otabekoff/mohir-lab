@@ -62,21 +62,184 @@ export interface CourseSection {
     lessons: Lesson[];
 }
 
+// Lesson Types
+export type LessonType =
+    | "video" // 🎥 Video Lesson
+    | "text" // 📝 Text/Article
+    | "quiz" // ❓ Quiz/Test
+    | "assignment" // 📂 Assignment/Homework
+    | "coding" // 💻 Coding Exercise
+    | "project" // 🧪 Project/Case Study
+    | "task" // 🎯 Task/Challenge
+    | "exam" // 📊 Exam/Final Test
+    | "milestone" // 🏁 Milestone/Checkpoint
+    | "discussion" // 💬 Discussion/Q&A
+    | "announcement" // 📢 Announcement
+    | "survey" // 🧠 Reflection/Survey
+    | "resource" // 📎 Downloadable Resource
+    | "external" // 🔗 External Resource
+    | "live" // 📺 Live Lesson
+    | "group_work" // 🤝 Group Work
+    | "certificate"; // 🏆 Certificate Lesson
+
 export interface Lesson {
     id: string;
     title: string;
     description?: string;
-    videoUrl: string; // Secure streaming URL
-    duration: number; // in seconds
+    type: LessonType;
     order: number;
-    isFree: boolean; // Preview lessons
+    isFree: boolean;
+    duration: number; // in seconds
+
+    // Video type
+    videoUrl?: string;
+    videoThumbnail?: string;
+    subtitlesUrl?: string;
+
+    // Text type
+    content?: string; // Markdown content
+
+    // Quiz/Exam type
+    passingScore?: number;
+    timeLimit?: number;
+    shuffleOptions?: boolean;
+    showAnswers?: boolean;
+    questions?: QuizQuestion[];
+
+    // Assignment type
+    instructions?: string;
+    allowFileUpload?: boolean;
+    allowTextSubmission?: boolean;
+    allowedFileTypes?: string;
+    maxFileSize?: number;
+    dueDate?: Date;
+    requiresManualReview?: boolean;
+
+    // Coding type
+    starterCode?: string;
+    solutionCode?: string;
+    language?: string;
+    testCases?: string; // JSON
+    allowedLanguages?: string;
+
+    // External/Live type
+    externalUrl?: string;
+    externalType?: string;
+    scheduledAt?: Date;
+    recordingUrl?: string;
+
+    // Milestone type
+    requiredLessons?: string; // JSON array of lesson IDs
+
+    // Discussion type
+    allowComments?: boolean;
+
+    // Relations
     resources?: LessonResource[];
+}
+
+// Quiz related types
+export type QuestionType =
+    | "multiple_choice"
+    | "multi_select"
+    | "true_false"
+    | "fill_blank"
+    | "matching"
+    | "short_answer"
+    | "code";
+
+export interface QuizQuestion {
+    id: string;
+    lessonId: string;
+    type: QuestionType;
+    question: string;
+    explanation?: string | null;
+    points: number;
+    order: number;
+    options?: QuizOption[];
+}
+
+export interface QuizOption {
+    id: string;
+    questionId: string;
+    text: string;
+    isCorrect: boolean;
+    order: number;
+    matchesTo?: string | null; // For matching questions
+}
+
+export interface QuizAnswer {
+    id: string;
+    questionId: string;
+    userId: string;
+    answer: string; // JSON for complex answers
+    isCorrect: boolean;
+    points: number;
+}
+
+// Submission types
+export type SubmissionStatus =
+    | "draft"
+    | "submitted"
+    | "under_review"
+    | "graded"
+    | "returned";
+
+export interface LessonSubmission {
+    id: string;
+    lessonId: string;
+    userId: string;
+    status: SubmissionStatus;
+    textContent?: string;
+    codeContent?: string;
+    fileUrls?: string; // JSON array
+    codeOutput?: string;
+    testResults?: string; // JSON
+    passedTests?: number;
+    totalTests?: number;
+    score?: number;
+    feedback?: string;
+    gradedBy?: string;
+    gradedAt?: Date;
+    submittedAt?: Date;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+// Lesson Comment (Discussion)
+export interface LessonComment {
+    id: string;
+    lessonId: string;
+    userId: string;
+    user?: Pick<User, "id" | "name" | "image">;
+    content: string;
+    parentId?: string;
+    replies?: LessonComment[];
+    isPinned: boolean;
+    isInstructor: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+// Lesson Progress with type-specific data
+export interface LessonProgress {
+    id: string;
+    userId: string;
+    lessonId: string;
+    watchedSeconds: number;
+    quizScore?: number | null;
+    quizAttempts: number;
+    lastQuizDate?: Date | null;
+    codePassed?: boolean | null;
+    codeScore?: number | null;
+    isCompleted: boolean;
+    completedAt?: Date | null;
 }
 
 export interface LessonResource {
     id: string;
     title: string;
-    type: "pdf" | "code" | "link" | "file";
+    type: "pdf" | "code" | "slides" | "cheatsheet" | "source_code" | "link" | "file";
     url: string;
 }
 
