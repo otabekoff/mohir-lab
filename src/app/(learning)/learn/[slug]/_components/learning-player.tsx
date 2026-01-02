@@ -21,13 +21,9 @@ interface Lesson {
 
 interface LearningPlayerProps {
   lesson: Lesson | null;
-  course: {
-    id: string;
-    title: string;
-  };
 }
 
-export function LearningPlayer({ lesson, course }: LearningPlayerProps) {
+export function LearningPlayer({ lesson }: LearningPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
 
   if (!lesson) {
@@ -59,25 +55,48 @@ export function LearningPlayer({ lesson, course }: LearningPlayerProps) {
             src={lesson.videoUrl}
             controls
             autoPlay
-            className="h-full w-full"
+            className="h-full w-full object-contain"
+            onError={(e) => {
+              console.error("Video playback error:", e);
+            }}
           >
             Your browser does not support the video tag.
           </video>
         ) : (
-          <div className="flex h-full items-center justify-center">
-            <Button
-              size="lg"
-              onClick={() => setIsPlaying(true)}
-              className="gap-2"
-            >
-              <Play className="h-5 w-5" />
-              Play Video
-            </Button>
+          <div className="flex h-full flex-col items-center justify-center gap-4">
+            {lesson.videoUrl ? (
+              <>
+                <Button
+                  size="lg"
+                  onClick={() => setIsPlaying(true)}
+                  className="gap-2"
+                  variant="secondary"
+                >
+                  <Play className="h-5 w-5" />
+                  Play Video
+                </Button>
+                <p className="text-sm text-muted-foreground">
+                  Click to start watching
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="rounded-lg bg-muted p-6 text-center">
+                  <BookOpen className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                  <p className="font-medium">Video not available</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    This lesson doesn&apos;t have a video URL configured yet.
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         )}
-        <div className="absolute right-4 bottom-4 rounded bg-black/70 px-2 py-1 text-xs text-white">
-          {formatDuration(lesson.duration)}
-        </div>
+        {lesson.duration > 0 && (
+          <div className="absolute right-4 bottom-4 rounded bg-black/70 px-2 py-1 text-xs text-white">
+            {formatDuration(lesson.duration)}
+          </div>
+        )}
       </div>
 
       {/* Lesson Info & Resources */}

@@ -30,7 +30,6 @@ import { toast } from "sonner";
 import {
   sendNotification,
   sendNotificationToRole,
-  sendBulkNotification,
 } from "@/actions/admin/notifications";
 import type { NotificationType } from "@/generated/prisma";
 

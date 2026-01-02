@@ -47,6 +47,13 @@ export default async function LearnPage({
     notFound();
   }
 
+  // Convert Decimal fields to numbers for client components
+  const courseData = {
+    ...course,
+    price: Number(course.price),
+    discountPrice: course.discountPrice ? Number(course.discountPrice) : null,
+  };
+
   // Get enrollment data for progress
   const enrollment = await getEnrollmentBySlug(slug);
 
@@ -55,7 +62,7 @@ export default async function LearnPage({
   let currentSection = null;
 
   if (lessonId) {
-    for (const section of course.sections) {
+    for (const section of courseData.sections) {
       const foundLesson = section.lessons.find((l) => l.id === lessonId);
       if (foundLesson) {
         currentLesson = foundLesson;
@@ -66,8 +73,8 @@ export default async function LearnPage({
   }
 
   // Default to first lesson if no lesson specified
-  if (!currentLesson && course.sections.length > 0) {
-    currentSection = course.sections[0];
+  if (!currentLesson && courseData.sections.length > 0) {
+    currentSection = courseData.sections[0];
     if (currentSection.lessons.length > 0) {
       currentLesson = currentSection.lessons[0];
     }
@@ -75,17 +82,20 @@ export default async function LearnPage({
 
   return (
     <div className="flex h-screen flex-col">
-      <LearningHeader course={course} progress={enrollment?.progress || 0} />
+      <LearningHeader
+        course={courseData}
+        progress={enrollment?.progress || 0}
+      />
 
       <div className="flex flex-1 overflow-hidden">
         {/* Video Player Area */}
         <div className="flex-1 overflow-auto">
-          <LearningPlayer lesson={currentLesson} course={course} />
+          <LearningPlayer lesson={currentLesson} />
         </div>
 
         {/* Sidebar with lessons */}
         <LearningSidebar
-          course={course}
+          course={courseData}
           currentLessonId={currentLesson?.id}
           enrollment={enrollment}
         />

@@ -19,7 +19,6 @@ import {
   ChevronRight,
   Play,
   CheckCircle2,
-  Lock,
   Clock,
 } from "lucide-react";
 

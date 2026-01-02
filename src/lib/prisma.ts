@@ -12,8 +12,25 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function createPrismaClient() {
-    const adapter = new PrismaPg({ connectionString });
-    return new PrismaClient({ adapter });
+    const adapter = new PrismaPg({
+        connectionString,
+        // Pool configuration is handled at the connection string level
+        // or through environment variables
+    });
+    
+    const client = new PrismaClient({
+        adapter,
+        log: process.env.NODE_ENV === 'development' 
+            ? ['warn', 'error']
+            : ['error'],
+    });
+
+    // Handle connection errors gracefully
+    client.$on('error', (e) => {
+        console.error('Prisma error:', e);
+    });
+
+    return client;
 }
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();

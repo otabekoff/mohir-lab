@@ -4,22 +4,27 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import type { OrderStatus } from "@/generated/prisma";
+import { AuthorizationError, withDatabase } from "@/lib/db-errors";
 
 // Helper to check admin access
 async function checkAdminAccess() {
     const session = await auth();
-    if (!session?.user?.id) throw new Error("Unauthorized");
-
-    const user = await prisma.user.findUnique({
-        where: { id: session.user.id },
-        select: { role: true },
-    });
-
-    if (!user || !["owner", "manager"].includes(user.role)) {
-        throw new Error("Forbidden");
+    if (!session?.user?.id) {
+        throw new AuthorizationError("You must be logged in to access this resource.");
     }
 
-    return { userId: session.user.id, role: user.role };
+    return await withDatabase(async () => {
+        const user = await prisma.user.findUnique({
+            where: { id: session.user.id },
+            select: { role: true },
+        });
+
+        if (!user || !["owner", "manager"].includes(user.role)) {
+            throw new AuthorizationError("You do not have permission to access this resource.");
+        }
+
+        return { userId: session.user.id, role: user.role };
+    }, 'checkAdminAccess');
 }
 
 export async function getStudents(options?: {
@@ -29,35 +34,36 @@ export async function getStudents(options?: {
 }) {
     await checkAdminAccess();
 
-    const search = options?.search;
-    const page = options?.page || 1;
-    const limit = options?.limit || 10;
+    return await withDatabase(async () => {
+        const search = options?.search;
+        const page = options?.page || 1;
+        const limit = options?.limit || 10;
 
-    const where: Record<string, unknown> = {
-        role: "customer",
-    };
+        const where: Record<string, unknown> = {
+            role: "customer",
+        };
 
-    if (search) {
-        where.OR = [
-            { name: { contains: search, mode: "insensitive" } },
-            { email: { contains: search, mode: "insensitive" } },
-        ];
-    }
+        if (search) {
+            where.OR = [
+                { name: { contains: search, mode: "insensitive" } },
+                { email: { contains: search, mode: "insensitive" } },
+            ];
+        }
 
-    const [students, total] = await Promise.all([
-        prisma.user.findMany({
-            where,
-            select: {
-                id: true,
-                name: true,
-                email: true,
-                image: true,
-                createdAt: true,
-                _count: {
-                    select: {
-                        enrollments: true,
-                        orders: true,
-                        reviews: true,
+        const [students, total] = await Promise.all([
+            prisma.user.findMany({
+                where,
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    image: true,
+                    createdAt: true,
+                    _count: {
+                        select: {
+                            enrollments: true,
+                            orders: true,
+                            reviews: true,
                     },
                 },
             },
@@ -88,95 +94,98 @@ export async function getStudents(options?: {
         }),
     );
 
-    return {
-        students: studentsWithSpending,
-        pagination: {
-            page,
-            limit,
-            total,
-            totalPages: Math.ceil(total / limit),
-        },
-    };
+        return {
+            students: studentsWithSpending,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+            },
+        };
+    }, 'getStudents');
 }
 
 export async function getStudentById(studentId: string) {
     await checkAdminAccess();
 
-    const student = await prisma.user.findUnique({
-        where: { id: studentId },
-        include: {
-            enrollments: {
-                include: {
-                    course: {
-                        select: {
-                            id: true,
-                            title: true,
-                            slug: true,
-                            thumbnail: true,
+    return await withDatabase(async () => {
+        const student = await prisma.user.findUnique({
+            where: { id: studentId },
+            include: {
+                enrollments: {
+                    include: {
+                        course: {
+                            select: {
+                                id: true,
+                                title: true,
+                                slug: true,
+                                thumbnail: true,
+                            },
                         },
                     },
+                    orderBy: { enrolledAt: "desc" },
                 },
-                orderBy: { enrolledAt: "desc" },
-            },
-            orders: {
-                include: {
-                    course: {
-                        select: {
-                            id: true,
-                            title: true,
-                            slug: true,
+                orders: {
+                    include: {
+                        course: {
+                            select: {
+                                id: true,
+                                title: true,
+                                slug: true,
+                            },
                         },
                     },
+                    orderBy: { createdAt: "desc" },
                 },
-                orderBy: { createdAt: "desc" },
-            },
-            reviews: {
-                include: {
-                    course: {
-                        select: {
-                            id: true,
-                            title: true,
-                            slug: true,
+                reviews: {
+                    include: {
+                        course: {
+                            select: {
+                                id: true,
+                                title: true,
+                                slug: true,
+                            },
                         },
                     },
+                    orderBy: { createdAt: "desc" },
                 },
-                orderBy: { createdAt: "desc" },
-            },
-            certificates: {
-                include: {
-                    course: {
-                        select: {
-                            id: true,
-                            title: true,
-                            slug: true,
+                certificates: {
+                    include: {
+                        course: {
+                            select: {
+                                id: true,
+                                title: true,
+                                slug: true,
+                            },
                         },
                     },
+                    orderBy: { issuedAt: "desc" },
                 },
-                orderBy: { issuedAt: "desc" },
             },
-        },
-    });
+        });
 
-    if (!student || student.role !== "customer") {
-        return null;
-    }
+        if (!student || student.role !== "customer") {
+            return null;
+        }
 
-    const totalSpent = await prisma.order.aggregate({
-        where: {
-            userId: student.id,
-            status: "completed",
-        },
-        _sum: { amount: true },
-    });
+        const totalSpent = await prisma.order.aggregate({
+            where: {
+                userId: student.id,
+                status: "completed",
+            },
+            _sum: { amount: true },
+        });
 
-    return {
-        ...student,
-        orders: student.orders.map((order) => ({
-            ...order,
-            amount: Number(order.amount),
-        })),
-        totalSpent: Number(totalSpent._sum.amount || 0),
-    };
+        return {
+            ...student,
+            orders: student.orders.map((order) => ({
+                ...order,
+                amount: Number(order.amount),
+            })),
+            totalSpent: Number(totalSpent._sum.amount || 0),
+        };
+    }, 'getStudentById');
 }
 
 // Order management

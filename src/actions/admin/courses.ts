@@ -4,22 +4,27 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import type { CourseLevel } from "@/generated/prisma";
+import { AuthorizationError, withDatabase } from "@/lib/db-errors";
 
 // Helper to check admin access
 async function checkAdminAccess() {
   const session = await auth();
-  if (!session?.user?.id) throw new Error("Unauthorized");
-
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { role: true },
-  });
-
-  if (!user || !["owner", "manager"].includes(user.role)) {
-    throw new Error("Forbidden");
+  if (!session?.user?.id) {
+    throw new AuthorizationError("You must be logged in to access this resource.");
   }
 
-  return { userId: session.user.id, role: user.role };
+  return await withDatabase(async () => {
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: true },
+    });
+
+    if (!user || !["owner", "manager"].includes(user.role)) {
+      throw new AuthorizationError("You do not have permission to access this resource.");
+    }
+
+    return { userId: session.user.id, role: user.role };
+  }, 'checkAdminAccess');
 }
 
 export async function getAdminCourses(options?: {
@@ -31,99 +36,103 @@ export async function getAdminCourses(options?: {
 }) {
   await checkAdminAccess();
 
-  const search = options?.search;
-  const published = options?.published;
-  const categoryId = options?.categoryId;
-  const page = options?.page || 1;
-  const limit = options?.limit || 10;
+  return await withDatabase(async () => {
+    const search = options?.search;
+    const published = options?.published;
+    const categoryId = options?.categoryId;
+    const page = options?.page || 1;
+    const limit = options?.limit || 10;
 
-  const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = {};
 
-  if (search) {
-    where.OR = [
-      { title: { contains: search, mode: "insensitive" } },
-      { shortDescription: { contains: search, mode: "insensitive" } },
-    ];
-  }
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: "insensitive" } },
+        { shortDescription: { contains: search, mode: "insensitive" } },
+      ];
+    }
 
-  if (published === "published") {
-    where.isPublished = true;
-  } else if (published === "draft") {
-    where.isPublished = false;
-  }
+    if (published === "published") {
+      where.isPublished = true;
+    } else if (published === "draft") {
+      where.isPublished = false;
+    }
 
-  if (categoryId) {
-    where.categoryId = categoryId;
-  }
+    if (categoryId) {
+      where.categoryId = categoryId;
+    }
 
-  const [courses, total] = await Promise.all([
-    prisma.course.findMany({
-      where,
-      include: {
-        category: { select: { id: true, name: true } },
-        _count: {
-          select: { enrollments: true, reviews: true, sections: true },
+    const [courses, total] = await Promise.all([
+      prisma.course.findMany({
+        where,
+        include: {
+          category: { select: { id: true, name: true } },
+          _count: {
+            select: { enrollments: true, reviews: true, sections: true },
+          },
         },
-      },
-      orderBy: { createdAt: "desc" },
-      skip: (page - 1) * limit,
-      take: limit,
-    }),
-    prisma.course.count({ where }),
-  ]);
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.course.count({ where }),
+    ]);
 
-  return {
-    courses: courses.map((course) => ({
-      id: course.id,
-      title: course.title,
-      slug: course.slug,
-      thumbnail: course.thumbnail,
-      price: Number(course.price),
-      discountPrice: course.discountPrice ? Number(course.discountPrice) : null,
-      isPublished: course.isPublished,
-      isFeatured: course.isFeatured,
-      category: course.category,
-      studentsCount: course.studentsCount,
-      rating: course.rating,
-      reviewsCount: course._count.reviews,
-      sectionsCount: course._count.sections,
-      createdAt: course.createdAt,
-    })),
-    pagination: {
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
-    },
-  };
+    return {
+      courses: courses.map((course) => ({
+        id: course.id,
+        title: course.title,
+        slug: course.slug,
+        thumbnail: course.thumbnail,
+        price: Number(course.price),
+        discountPrice: course.discountPrice ? Number(course.discountPrice) : null,
+        isPublished: course.isPublished,
+        isFeatured: course.isFeatured,
+        category: course.category,
+        studentsCount: course.studentsCount,
+        rating: course.rating,
+        reviewsCount: course._count.reviews,
+        sectionsCount: course._count.sections,
+        createdAt: course.createdAt,
+      })),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }, 'getAdminCourses');
 }
 
 export async function getAdminCourseById(courseId: string) {
   await checkAdminAccess();
 
-  const course = await prisma.course.findUnique({
-    where: { id: courseId },
-    include: {
-      category: true,
-      sections: {
-        include: {
-          lessons: { orderBy: { order: "asc" } },
+  return await withDatabase(async () => {
+    const course = await prisma.course.findUnique({
+      where: { id: courseId },
+      include: {
+        category: true,
+        sections: {
+          include: {
+            lessons: { orderBy: { order: "asc" } },
+          },
+          orderBy: { order: "asc" },
         },
-        orderBy: { order: "asc" },
+        _count: {
+          select: { enrollments: true, reviews: true },
+        },
       },
-      _count: {
-        select: { enrollments: true, reviews: true },
-      },
-    },
-  });
+    });
 
-  if (!course) return null;
+    if (!course) return null;
 
-  return {
-    ...course,
-    price: Number(course.price),
-    discountPrice: course.discountPrice ? Number(course.discountPrice) : null,
-  };
+    return {
+      ...course,
+      price: Number(course.price),
+      discountPrice: course.discountPrice ? Number(course.discountPrice) : null,
+    };
+  }, 'getAdminCourseById');
 }
 
 export async function createCourse(data: {
