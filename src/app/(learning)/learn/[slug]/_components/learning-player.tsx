@@ -4,17 +4,25 @@
 // Learning Player Component
 // ============================================
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Play, Download, BookOpen, FileText } from "lucide-react";
+import {
+  Play,
+  Pause,
+  Download,
+  BookOpen,
+  FileText,
+  AlertCircle,
+  RotateCcw,
+} from "lucide-react";
 
 interface Lesson {
   id: string;
   title: string;
   description?: string | null;
-  videoUrl?: string;
+  videoUrl?: string | null;
   duration: number;
   isFree: boolean;
 }
@@ -23,8 +31,22 @@ interface LearningPlayerProps {
   lesson: Lesson | null;
 }
 
+// Fallback sample video when videoUrl doesn't work
+const FALLBACK_VIDEO =
+  "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+
 export function LearningPlayer({ lesson }: LearningPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const [useFallback, setUseFallback] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Reset states when lesson changes
+  useEffect(() => {
+    setIsPlaying(false);
+    setHasError(false);
+    setUseFallback(false);
+  }, [lesson?.id]);
 
   if (!lesson) {
     return (
@@ -46,53 +68,82 @@ export function LearningPlayer({ lesson }: LearningPlayerProps) {
     return `${minutes}:${secs.toString().padStart(2, "0")}`;
   };
 
+  const videoSrc = useFallback
+    ? FALLBACK_VIDEO
+    : lesson.videoUrl || FALLBACK_VIDEO;
+
+  const handlePlay = () => {
+    setIsPlaying(true);
+    setHasError(false);
+  };
+
+  const handleVideoError = () => {
+    console.error("Video playback error for URL:", lesson.videoUrl);
+    if (!useFallback && lesson.videoUrl) {
+      // Try fallback video
+      setUseFallback(true);
+      setHasError(false);
+    } else {
+      setHasError(true);
+    }
+  };
+
+  const handleRetry = () => {
+    setHasError(false);
+    setUseFallback(false);
+    setIsPlaying(false);
+  };
+
   return (
     <div className="flex flex-col">
       {/* Video Player */}
       <div className="relative aspect-video bg-black">
-        {isPlaying && lesson.videoUrl ? (
+        {hasError ? (
+          <div className="flex h-full flex-col items-center justify-center gap-4 text-white">
+            <AlertCircle className="h-12 w-12 text-red-400" />
+            <p className="font-medium">Video could not be loaded</p>
+            <p className="text-sm text-gray-400">
+              The video file might be unavailable or there&apos;s a network
+              issue.
+            </p>
+            <Button onClick={handleRetry} variant="secondary" className="gap-2">
+              <RotateCcw className="h-4 w-4" />
+              Try Again
+            </Button>
+          </div>
+        ) : isPlaying ? (
           <video
-            src={lesson.videoUrl}
+            ref={videoRef}
+            src={videoSrc}
             controls
             autoPlay
             className="h-full w-full object-contain"
-            onError={(e) => {
-              console.error("Video playback error:", e);
-            }}
+            onError={handleVideoError}
           >
             Your browser does not support the video tag.
           </video>
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-4">
-            {lesson.videoUrl ? (
-              <>
-                <Button
-                  size="lg"
-                  onClick={() => setIsPlaying(true)}
-                  className="gap-2"
-                  variant="secondary"
-                >
-                  <Play className="h-5 w-5" />
-                  Play Video
-                </Button>
-                <p className="text-sm text-muted-foreground">
-                  Click to start watching
-                </p>
-              </>
-            ) : (
-              <>
-                <div className="rounded-lg bg-muted p-6 text-center">
-                  <BookOpen className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-                  <p className="font-medium">Video not available</p>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    This lesson doesn&apos;t have a video URL configured yet.
-                  </p>
-                </div>
-              </>
+            <Button
+              size="lg"
+              onClick={handlePlay}
+              className="gap-2"
+              variant="secondary"
+            >
+              <Play className="h-5 w-5" />
+              Play Video
+            </Button>
+            <p className="text-sm text-muted-foreground">
+              Click to start watching
+            </p>
+            {useFallback && (
+              <p className="text-xs text-yellow-400">
+                Using sample video (original not available)
+              </p>
             )}
           </div>
         )}
-        {lesson.duration > 0 && (
+        {lesson.duration > 0 && !isPlaying && (
           <div className="absolute right-4 bottom-4 rounded bg-black/70 px-2 py-1 text-xs text-white">
             {formatDuration(lesson.duration)}
           </div>

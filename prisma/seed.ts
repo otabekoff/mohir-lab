@@ -523,6 +523,16 @@ This course is perfect for developers who want to build modern, production-ready
                 },
             });
 
+            // Sample video URLs that actually work
+            const sampleVideos = [
+                "https://www.w3schools.com/html/mov_bbb.mp4",
+                "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+                "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+                "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+                "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+                "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+            ];
+
             for (let lIdx = 0; lIdx < sectionData.lessons.length; lIdx++) {
                 await prisma.lesson.create({
                     data: {
@@ -530,10 +540,7 @@ This course is perfect for developers who want to build modern, production-ready
                         description: `Learn about ${
                             sectionData.lessons[lIdx].toLowerCase()
                         } in this comprehensive lesson.`,
-                        videoUrl:
-                            `https://storage.mohirlab.com/videos/${course.slug}/s${
-                                sIdx + 1
-                            }-l${lIdx + 1}.mp4`,
+                        videoUrl: sampleVideos[(sIdx * 5 + lIdx) % sampleVideos.length],
                         duration: Math.floor(Math.random() * 600) + 300, // 5-15 minutes
                         order: lIdx + 1,
                         isFree: sIdx === 0 && lIdx === 0, // First lesson is free

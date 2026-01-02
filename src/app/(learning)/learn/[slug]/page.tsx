@@ -5,7 +5,7 @@
 import { notFound, redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth.config";
-import { getCourseBySlug } from "@/actions/courses";
+import { getCourseForLearning } from "@/actions/courses";
 import { isEnrolledBySlug, getEnrollmentBySlug } from "@/actions/enrollments";
 import { LearningPlayer } from "./_components/learning-player";
 import { LearningSidebar } from "./_components/learning-sidebar";
@@ -40,8 +40,8 @@ export default async function LearnPage({
     redirect(`/courses/${slug}?error=not-enrolled`);
   }
 
-  // Get course data
-  const course = await getCourseBySlug(slug);
+  // Get course data with video URLs (only available for enrolled users)
+  const course = await getCourseForLearning(slug);
 
   if (!course) {
     notFound();

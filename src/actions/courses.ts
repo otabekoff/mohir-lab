@@ -158,6 +158,38 @@ export async function getCourseBySlug(
     return course;
 }
 
+// Get course for learning (with video URLs for enrolled users)
+export async function getCourseForLearning(slug: string) {
+    const course = await prisma.course.findFirst({
+        where: {
+            slug,
+            isPublished: true,
+        },
+        include: {
+            category: true,
+            sections: {
+                orderBy: { order: "asc" },
+                include: {
+                    lessons: {
+                        orderBy: { order: "asc" },
+                        select: {
+                            id: true,
+                            title: true,
+                            description: true,
+                            videoUrl: true, // Include video URL for enrolled users
+                            duration: true,
+                            isFree: true,
+                            order: true,
+                        },
+                    },
+                },
+            },
+        },
+    });
+
+    return course;
+}
+
 // Get related courses (same category)
 export async function getRelatedCourses(
     courseId: string,

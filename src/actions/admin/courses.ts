@@ -152,35 +152,37 @@ export async function createCourse(data: {
 }) {
   await checkAdminAccess();
 
-  const existingSlug = await prisma.course.findUnique({
-    where: { slug: data.slug },
-  });
+  return await withDatabase(async () => {
+    const existingSlug = await prisma.course.findUnique({
+      where: { slug: data.slug },
+    });
 
-  if (existingSlug) {
-    throw new Error("A course with this slug already exists");
-  }
+    if (existingSlug) {
+      throw new Error("A course with this slug already exists");
+    }
 
-  const course = await prisma.course.create({
-    data: {
-      title: data.title,
-      slug: data.slug,
-      shortDescription: data.shortDescription,
-      description: data.description,
-      thumbnail: data.thumbnail,
-      previewVideo: data.previewVideo,
-      price: data.price,
-      discountPrice: data.discountPrice,
-      categoryId: data.categoryId,
-      level: data.level,
-      instructor: data.instructor,
-      isPublished: data.isPublished || false,
-      isFeatured: data.isFeatured || false,
-    },
-  });
+    const course = await prisma.course.create({
+      data: {
+        title: data.title,
+        slug: data.slug,
+        shortDescription: data.shortDescription,
+        description: data.description,
+        thumbnail: data.thumbnail,
+        previewVideo: data.previewVideo,
+        price: data.price,
+        discountPrice: data.discountPrice,
+        categoryId: data.categoryId,
+        level: data.level,
+        instructor: data.instructor,
+        isPublished: data.isPublished || false,
+        isFeatured: data.isFeatured || false,
+      },
+    });
 
-  revalidatePath("/dashboard/courses");
+    revalidatePath("/dashboard/courses");
 
-  return course;
+    return course;
+  }, 'createCourse');
 }
 
 export async function updateCourse(
@@ -203,37 +205,41 @@ export async function updateCourse(
 ) {
   await checkAdminAccess();
 
-  if (data.slug) {
-    const existingSlug = await prisma.course.findFirst({
-      where: { slug: data.slug, NOT: { id: courseId } },
+  return await withDatabase(async () => {
+    if (data.slug) {
+      const existingSlug = await prisma.course.findFirst({
+        where: { slug: data.slug, NOT: { id: courseId } },
+      });
+
+      if (existingSlug) {
+        throw new Error("A course with this slug already exists");
+      }
+    }
+
+    const course = await prisma.course.update({
+      where: { id: courseId },
+      data,
     });
 
-    if (existingSlug) {
-      throw new Error("A course with this slug already exists");
-    }
-  }
+    revalidatePath("/dashboard/courses");
+    revalidatePath(`/dashboard/courses/${courseId}`);
 
-  const course = await prisma.course.update({
-    where: { id: courseId },
-    data,
-  });
-
-  revalidatePath("/dashboard/courses");
-  revalidatePath(`/dashboard/courses/${courseId}`);
-
-  return course;
+    return course;
+  }, 'updateCourse');
 }
 
 export async function deleteCourse(courseId: string) {
   await checkAdminAccess();
 
-  await prisma.course.delete({
-    where: { id: courseId },
-  });
+  return await withDatabase(async () => {
+    await prisma.course.delete({
+      where: { id: courseId },
+    });
 
-  revalidatePath("/dashboard/courses");
+    revalidatePath("/dashboard/courses");
 
-  return { success: true };
+    return { success: true };
+  }, 'deleteCourse');
 }
 
 export async function duplicateCourse(courseId: string) {
@@ -303,21 +309,23 @@ export async function duplicateCourse(courseId: string) {
 export async function createSection(courseId: string, title: string) {
   await checkAdminAccess();
 
-  const lastSection = await prisma.section.findFirst({
-    where: { courseId },
-    orderBy: { order: "desc" },
-  });
+  return await withDatabase(async () => {
+    const lastSection = await prisma.section.findFirst({
+      where: { courseId },
+      orderBy: { order: "desc" },
+    });
 
-  const section = await prisma.section.create({
-    data: {
-      courseId,
-      title,
-      order: (lastSection?.order || 0) + 1,
-    },
-  });
+    const section = await prisma.section.create({
+      data: {
+        courseId,
+        title,
+        order: (lastSection?.order || 0) + 1,
+      },
+    });
 
-  revalidatePath(`/dashboard/courses/${courseId}`);
-  return section;
+    revalidatePath(`/dashboard/courses/${courseId}`);
+    return section;
+  }, 'createSection');
 }
 
 export async function updateSection(sectionId: string, title: string) {
